@@ -2,6 +2,7 @@
 // reorganised; links point to the URLs already indexed on the WordPress site.
 import type { ImageMetadata } from 'astro';
 import { servicesOf, type Service } from './services';
+import type { PortraitRig } from '../lib/live-portrait';
 import dylan from '../assets/team/dylan.webp';
 import theo from '../assets/team/theo.webp';
 import margot from '../assets/team/margot.webp';
@@ -48,8 +49,10 @@ export interface Member {
   role: string;
   bio: string;
   skills: string[];
-  /** Cut-out portrait (transparent background), shown in black and white until active. */
+  /** Cut-out portrait (transparent background). */
   photo: ImageMetadata;
+  /** Landmarks on the photo that bring it to life (lib/live-portrait.ts). */
+  rig: PortraitRig;
 }
 
 export const TEAM: Member[] = [
@@ -59,6 +62,7 @@ export const TEAM: Member[] = [
     bio: 'À l’origine des Drones Lyonnais, il dirige les opérations aériennes et intervient sur les projets techniques complexes et l’audiovisuel haut de gamme.',
     skills: ['Direction de projet', 'Pilotage drone', 'Photogrammétrie 3D', 'Thermographie', 'Audiovisuel'],
     photo: dylan,
+    rig: { eyes: [[0.435, 0.367, 0.03, 0.012], [0.548, 0.357, 0.028, 0.011]], head: [0.495, 0.4, 0.15, 0.2], chin: 0.56 },
   },
   {
     name: 'Théo',
@@ -66,6 +70,7 @@ export const TEAM: Member[] = [
     bio: 'Issu d’une école de cinéma, il signe la réalisation de nos productions et forme nos stagiaires aux métiers des médias et de la communication.',
     skills: ['Réalisation', 'Cadrage', 'Drone cinéma', 'FPV', 'Montage vidéo'],
     photo: theo,
+    rig: { eyes: [[0.427, 0.352, 0.032, 0.011], [0.555, 0.34, 0.03, 0.011]], head: [0.495, 0.39, 0.15, 0.2], chin: 0.575 },
   },
   {
     name: 'Margot',
@@ -73,6 +78,7 @@ export const TEAM: Member[] = [
     bio: 'Elle suit chaque projet de près, organise les missions et fait vivre l’image de l’entreprise sur nos supports.',
     skills: ['Relation client', 'Organisation des projets', 'Suivi administratif', 'Réseaux sociaux'],
     photo: margot,
+    rig: { eyes: [[0.4, 0.346, 0.03, 0.01], [0.521, 0.338, 0.027, 0.01]], head: [0.465, 0.37, 0.14, 0.19], chin: 0.53 },
   },
   {
     name: 'Pop',
@@ -80,6 +86,7 @@ export const TEAM: Member[] = [
     bio: 'Toujours au bureau, il accueille les visiteurs et accompagne parfois l’équipe en tournage.',
     skills: ['Accueil des visiteurs', 'Moral des troupes', 'Expert officiel en câlins'],
     photo: pop,
+    rig: { eyes: [[0.415, 0.417, 0.03, 0.013], [0.567, 0.417, 0.028, 0.013]], head: [0.5, 0.43, 0.24, 0.26], chin: 0.72, tongue: [0.5, 0.585, 0.045, 0.14] },
   },
 ];
 

@@ -1,22 +1,27 @@
 ---
-// A team member's portrait: their own avatar photo (cut out, upscaled and sharpened),
-// on the brand's ink disc with a gold ring, inside the camera's viewfinder marks.
-// Under the pointer (--px/--py, set by the page) the disc tilts slightly in 3D and the
-// person shifts a little more than the disc, which gives it depth.
-import { Image } from 'astro:assets';
+// A team member's portrait: their own avatar photo, on the brand's ink disc with a gold
+// ring, inside the camera's viewfinder marks. The photo comes alive in WebGL
+// (lib/live-portrait.ts: breathing, blinking, looking around); the plain photo shows
+// until then, and stays without WebGL or with reduced motion. Under the pointer
+// (--px/--py, set by the page) the disc also tilts slightly in 3D.
+import { Image, getImage } from 'astro:assets';
 import type { ImageMetadata } from 'astro';
+import type { PortraitRig } from '../../lib/live-portrait';
 
 interface Props {
   photo: ImageMetadata;
   alt: string;
+  rig?: PortraitRig;
   class?: string;
 }
-const { photo, alt, class: className } = Astro.props;
+const { photo, alt, rig, class: className } = Astro.props;
+const texture = rig ? await getImage({ src: photo, width: 768, format: 'webp' }) : null;
 ---
 
 <div class:list={['portrait viewfinder', className]} style={{ '--vf': 'var(--color-ink)', '--vf-inset': '0px', '--vf-size': '18px' }}>
   <div class="disc">
     <Image src={photo} alt={alt} widths={[240, 400, 640]} sizes="(min-width: 1024px) 380px, 140px" class="shot" />
+    {rig && texture && <canvas class="shot live" data-rig={JSON.stringify(rig)} data-src={texture.src} aria-hidden="true" />}
   </div>
 </div>
 
@@ -41,6 +46,15 @@ const { photo, alt, class: className } = Astro.props;
     transform: rotateY(calc(var(--px) * 9deg)) rotateX(calc(var(--py) * -9deg));
     transition: transform 600ms var(--ease-out-strong);
   }
+  .live {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 400ms ease;
+  }
+  .live:global(.is-live) {
+    opacity: 1;
+  }
   .shot {
     width: 100%;
     height: 100%;
@@ -56,3 +70,8 @@ const { photo, alt, class: className } = Astro.props;
     }
   }
 </style>
+
+<script>
+  import { initLivePortraits } from '../../lib/live-portrait';
+  initLivePortraits();
+</script>
