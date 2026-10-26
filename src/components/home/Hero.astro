@@ -4,7 +4,9 @@
 // opens the page. The screen boots up once on load, then stays behind the page while
 // the content scrolls over it (curtain).
 //
-// Feeds are photos for now; each mode can take a short aerial video later.
+// Feeds are photos for now; each mode can take a short aerial video later. The
+// Formations photo is an Unsplash placeholder (Unsplash License) until the client
+// provides one of their own training sessions.
 import { Image } from 'astro:assets';
 import type { ImageMetadata } from 'astro';
 import feedPrestations from '../../assets/images/feed-prestations.jpg';
@@ -33,15 +35,15 @@ const modes: Mode[] = [
     cue: 'Voir les prestations',
     text: 'Prises de vues, inspections et relevés 3D',
     feed: feedPrestations,
-    focus: '60% 50%',
-    flight: { label: 'Vol cinéma', altitude: 42, speed: 16.4, heading: 284 },
+    focus: '50% 60%',
+    flight: { label: 'Caméra thermique', altitude: 42, speed: 6.4, heading: 284 },
   },
   {
     activity: ACTIVITIES.boutique,
     cue: 'Voir la boutique',
     text: 'Drones, kits C5 et accessoires',
     feed: feedBoutique,
-    focus: '50% 62%',
+    focus: '50% 55%',
     flight: { label: 'Stationnaire', altitude: 1.2, speed: 0, heading: 12 },
   },
   {
@@ -49,7 +51,7 @@ const modes: Mode[] = [
     cue: 'Louer du matériel',
     text: 'Drones, caméras, son et lumière',
     feed: feedLocation,
-    focus: '50% 55%',
+    focus: '50% 40%',
     flight: { label: 'Au sol', altitude: 0, speed: 0, heading: 96 },
   },
   {
@@ -57,7 +59,7 @@ const modes: Mode[] = [
     cue: 'Voir les formations',
     text: 'Pilotage de drone et métiers de l’image',
     feed: feedFormations,
-    focus: '50% 70%',
+    focus: '50% 50%',
     flight: { label: 'Mode école', altitude: 30, speed: 4.2, heading: 198 },
   },
 ];
