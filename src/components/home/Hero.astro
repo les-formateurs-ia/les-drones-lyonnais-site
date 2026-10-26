@@ -18,6 +18,8 @@ import { ACTIVITIES, type Activity } from '../../data/site';
 interface Mode {
   activity: Activity;
   text: string;
+  /** What choosing this mode leads to. */
+  cue: string;
   feed: ImageMetadata;
   /** Crop anchor of the feed photo. */
   focus: string;
@@ -28,6 +30,7 @@ interface Mode {
 const modes: Mode[] = [
   {
     activity: ACTIVITIES.prestations,
+    cue: 'Voir les prestations',
     text: 'Prises de vues, inspections et relevés 3D',
     feed: feedPrestations,
     focus: '60% 50%',
@@ -35,6 +38,7 @@ const modes: Mode[] = [
   },
   {
     activity: ACTIVITIES.boutique,
+    cue: 'Voir la boutique',
     text: 'Drones, kits C5 et accessoires',
     feed: feedBoutique,
     focus: '50% 62%',
@@ -42,6 +46,7 @@ const modes: Mode[] = [
   },
   {
     activity: ACTIVITIES.location,
+    cue: 'Louer du matériel',
     text: 'Drones, caméras, son et lumière',
     feed: feedLocation,
     focus: '50% 55%',
@@ -49,6 +54,7 @@ const modes: Mode[] = [
   },
   {
     activity: ACTIVITIES.formations,
+    cue: 'Voir les formations',
     text: 'Pilotage de drone et métiers de l’image',
     feed: feedFormations,
     focus: '50% 70%',
@@ -144,6 +150,7 @@ const tapeOffset = (heading: number) => COMPASS / 2 - ((8 + heading / 45) * TICK
                 {mode.activity.label}
               </span>
               <span class="mode-text">{mode.text}</span>
+              <span class="mode-cue" aria-hidden="true">{mode.cue}</span>
               <span class="mode-bar" aria-hidden="true" />
             </a>
           </li>
@@ -459,33 +466,27 @@ const tapeOffset = (heading: number) => COMPASS / 2 - ((8 + heading / 45) * TICK
   .modes {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    border-top: 1px solid rgb(255 255 255 / 0.25);
+    gap: 2px;
   }
-  /* Boutique and Location share a cell edge, with the gold divider of the brand's hero. */
-  .mode[data-group] + .mode[data-group] .mode-link::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 22px;
-    width: 1px;
-    height: 44px;
-    background: var(--color-gold);
-  }
+  /* Each activity is a clear, glassy panel over the feed. */
   .mode-link {
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding: 22px clamp(12px, 1.6vw, 24px) 0;
+    gap: 10px;
+    height: 100%;
+    padding: clamp(18px, 2vw, 28px);
     color: #fff;
-    opacity: 0.55;
-    transition: opacity 300ms ease;
+    background: rgb(0 0 0 / 0.35);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    transition: background-color 300ms ease;
   }
   .mode-label {
     display: flex;
     align-items: center;
     gap: 0.35em;
-    font-size: clamp(1.4rem, 2.5vw, 2.5rem);
+    font-size: clamp(1.6rem, 2.7vw, 2.8rem);
     font-weight: 700;
     font-stretch: 118%;
     letter-spacing: -0.02em;
@@ -495,13 +496,25 @@ const tapeOffset = (heading: number) => COMPASS / 2 - ((8 + heading / 45) * TICK
     max-width: 28ch;
     font-size: 15px;
     line-height: 1.4;
-    color: rgb(255 255 255 / 0.8);
+    color: rgb(255 255 255 / 0.85);
+  }
+  .mode-cue {
+    margin-top: auto;
+    padding-top: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-gold);
+    opacity: 0;
+    transform: translateY(6px);
+    transition:
+      opacity 300ms ease,
+      transform 300ms var(--ease-out-strong);
   }
   /* Bar on top of the active mode: gold, filling while the modes cycle. */
   .mode-bar {
     position: absolute;
-    inset: -1px 0 auto;
-    height: 2px;
+    inset: 0 0 auto;
+    height: 3px;
     background: var(--color-gold);
     transform: scaleX(0);
     transform-origin: left;
@@ -510,7 +523,14 @@ const tapeOffset = (heading: number) => COMPASS / 2 - ((8 + heading / 45) * TICK
   .hero[data-mode='boutique'] [data-target='boutique'],
   .hero[data-mode='location'] [data-target='location'],
   .hero[data-mode='formations'] [data-target='formations'] {
+    background: rgb(0 0 0 / 0.7);
+  }
+  .hero[data-mode='prestations'] [data-target='prestations'] .mode-cue,
+  .hero[data-mode='boutique'] [data-target='boutique'] .mode-cue,
+  .hero[data-mode='location'] [data-target='location'] .mode-cue,
+  .hero[data-mode='formations'] [data-target='formations'] .mode-cue {
     opacity: 1;
+    transform: none;
   }
   .hero[data-mode='prestations'] [data-target='prestations'] .mode-bar,
   .hero[data-mode='boutique'] [data-target='boutique'] .mode-bar,
@@ -557,17 +577,11 @@ const tapeOffset = (heading: number) => COMPASS / 2 - ((8 + heading / 45) * TICK
       grid-template-columns: 1fr 1fr;
     }
     .mode-link {
-      padding: 16px 12px 14px 0;
+      padding: 16px;
+      gap: 6px;
     }
-    .mode:nth-child(even) .mode-link {
-      padding-left: 14px;
-    }
-    .mode:nth-child(n + 3) {
-      border-top: 1px solid rgb(255 255 255 / 0.15);
-    }
-    .mode[data-group] + .mode[data-group] .mode-link::before {
-      top: 16px;
-      height: 32px;
+    .mode-cue {
+      display: none;
     }
     .selector {
       padding-bottom: 36px;
@@ -597,8 +611,11 @@ const tapeOffset = (heading: number) => COMPASS / 2 - ((8 + heading / 45) * TICK
       inset-inline: calc(clamp(16px, 3vw, 40px) + 36px);
     }
     .mode-label {
-      font-size: 1.3rem;
+      font-size: 1.35rem;
       font-stretch: 108%;
+    }
+    .mode-text {
+      font-size: 13px;
     }
   }
 

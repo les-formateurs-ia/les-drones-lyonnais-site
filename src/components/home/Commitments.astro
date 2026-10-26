@@ -251,13 +251,10 @@ const route = (x: number, y: number) => {
     fill: var(--color-ink);
   }
   .label {
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 14px;
+    font-weight: 700;
     text-anchor: middle;
     fill: var(--color-ink);
-    paint-order: stroke;
-    stroke: var(--color-paper);
-    stroke-width: 4px;
   }
   .cities {
     opacity: calc(1 - var(--t) * 2);
@@ -266,8 +263,8 @@ const route = (x: number, y: number) => {
     opacity: calc(var(--t) * 2 - 1);
   }
   .nearby .label {
-    font-size: 12px;
-    font-weight: 500;
+    font-size: 13px;
+    font-weight: 700;
   }
   .home {
     fill: var(--color-gold);
@@ -295,9 +292,6 @@ const route = (x: number, y: number) => {
     font-weight: 800;
     font-stretch: 118%;
     fill: var(--color-ink);
-    paint-order: stroke;
-    stroke: var(--color-paper);
-    stroke-width: 5px;
   }
 
   .commitment {

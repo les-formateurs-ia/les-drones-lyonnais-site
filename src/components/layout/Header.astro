@@ -22,7 +22,7 @@ const squareColor = (id: string, color: string) => (id === 'boutique' ? 'current
       <Image src={overlay ? logoLight : logoDark} alt="" height={36} densities={[1, 2]} loading="eager" class="h-9 w-auto" />
     </a>
 
-    <nav aria-label="Navigation principale" class="hidden md:block">
+    <nav aria-label="Navigation principale" class="main-nav hidden md:block">
       <ul class="flex items-center gap-7">
         {
           NAV.map((item) => (
@@ -99,6 +99,32 @@ const squareColor = (id: string, color: string) => (id === 'boutique' ? 'current
       animation-range: calc(60svh) calc(100svh - 72px);
     }
   }
+  /* Over the hero the four activities are already the whole screen: the menu waits
+     until the header turns into a bar, then fades in. */
+  .site-header[data-overlay] .main-nav {
+    opacity: 0;
+    visibility: hidden;
+  }
+  @supports (animation-timeline: scroll()) {
+    .site-header[data-overlay] .main-nav {
+      animation-name: nav-in;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      animation-timeline: scroll(root);
+      animation-range: calc(70svh) calc(100svh - 72px);
+    }
+  }
+  @keyframes nav-in {
+    from {
+      opacity: 0;
+      visibility: hidden;
+    }
+    to {
+      opacity: 1;
+      visibility: visible;
+    }
+  }
+
   @keyframes header-solid {
     to {
       background: rgb(0 0 0 / 0.78);

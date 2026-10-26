@@ -1,10 +1,10 @@
 // Homepage content. Copy taken from the current homepage and service pages,
 // reorganised; links point to the URLs already indexed on the WordPress site.
 import type { ImageMetadata } from 'astro';
-import dylan from '../assets/team/dylan.png';
-import theo from '../assets/team/theo.png';
-import margot from '../assets/team/margot.png';
-import pop from '../assets/team/pop.png';
+import dylan from '../assets/team/dylan.webp';
+import theo from '../assets/team/theo.webp';
+import margot from '../assets/team/margot.webp';
+import pop from '../assets/team/pop.webp';
 
 export const HERO = {
   title: 'Pilotes de drone à\u00a0Lyon, en mission partout en France',

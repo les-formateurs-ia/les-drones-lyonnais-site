@@ -1,10 +1,8 @@
 ---
-// The team. The group photo opens up, then the crew is introduced one by one: on large
+// The team, introduced one by one: on large
 // screens the stage stays pinned while scrolling hands over from one member to the
 // next — names on the left, the member's portrait and story on the right. The portrait
-// takes its colours back. On small screens, the members are simply stacked.
-import { Image } from 'astro:assets';
-import equipe from '../../assets/images/equipe.jpg';
+// leans towards the pointer. On small screens, the members are simply stacked.
 import Portrait from '../ui/Portrait.astro';
 import SectionHeader from '../ui/SectionHeader.astro';
 import { TEAM, TEAM_INTRO } from '../../data/home';
@@ -15,15 +13,6 @@ import { TEAM, TEAM_INTRO } from '../../data/home';
     <SectionHeader id="team-title" title={TEAM_INTRO.title}>
       <p class="max-w-[42ch]">{TEAM_INTRO.text}</p>
     </SectionHeader>
-    <div class="window mt-12 overflow-hidden md:mt-16">
-      <Image
-        src={equipe}
-        alt="Dylan, Théo et Margot, l’équipe des Drones Lyonnais, avec Pop, leur chien samoyède"
-        widths={[640, 960, 1280, 1920]}
-        sizes="(min-width: 1280px) 1168px, 92vw"
-        class="team-photo aspect-[2125/762] w-full object-cover max-lg:aspect-[16/10] max-lg:object-[80%_50%]"
-      />
-    </div>
   </div>
 
   <div class="crew" style={{ '--count': TEAM.length }}>
@@ -66,40 +55,6 @@ import { TEAM, TEAM_INTRO } from '../../data/home';
 </section>
 
 <style>
-  /* ---------- Group photo opening ---------- */
-  @supports (animation-timeline: view()) {
-    @media (prefers-reduced-motion: no-preference) {
-      .window {
-        view-timeline: --team-window block;
-        animation-name: open-window;
-        animation-timing-function: linear;
-        animation-fill-mode: both;
-        animation-timeline: --team-window;
-        animation-range: entry 10% cover 45%;
-      }
-      .team-photo {
-        animation-name: settle;
-        animation-timing-function: linear;
-        animation-fill-mode: both;
-        animation-timeline: --team-window;
-        animation-range: entry 10% cover 45%;
-      }
-    }
-  }
-  @keyframes open-window {
-    from {
-      clip-path: inset(10% 18% 10% 18%);
-    }
-    to {
-      clip-path: inset(0 0 0 0);
-    }
-  }
-  @keyframes settle {
-    from {
-      transform: scale(1.15);
-    }
-  }
-
   /* ---------- Crew: stacked cards by default (small screens) ---------- */
   .crew {
     padding-block: 64px 96px;

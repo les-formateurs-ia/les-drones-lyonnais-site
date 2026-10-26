@@ -56,6 +56,22 @@ const facts = [...FACTS, { value: String(CLIENTS.length), label: 'clients, d’E
     height: 45svh;
     background: linear-gradient(rgb(0 0 0 / 0), #000);
     pointer-events: none;
+    opacity: 0;
+  }
+  /* It only appears once the visitor starts scrolling, so the hero stays untouched. */
+  @supports (animation-timeline: scroll()) {
+    .manifesto-section::before {
+      animation-name: bridge-in;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      animation-timeline: scroll(root);
+      animation-range: 0 30svh;
+    }
+  }
+  @keyframes bridge-in {
+    to {
+      opacity: 1;
+    }
   }
 
   /* Each word goes from faint to ink at its own point of the section's journey
