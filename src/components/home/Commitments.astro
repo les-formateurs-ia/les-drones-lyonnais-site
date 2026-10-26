@@ -20,12 +20,12 @@ const route = (x: number, y: number) => {
 };
 ---
 
-<section aria-labelledby="coverage-title" class="coverage bg-mist">
+<section aria-labelledby="coverage-title" class="coverage border-t border-line bg-paper">
   <div class="scroller">
     <div class="stage wrap">
       <div class="intro" data-reveal>
-        <h2 id="coverage-title" class="display text-[clamp(2rem,3.6vw,3.2rem)]">Basés à Lyon, au plus près de vos projets</h2>
-        <p class="mt-5 max-w-[46ch] text-lg leading-relaxed text-ink-soft">
+        <h2 id="coverage-title" class="display flex items-start gap-4 text-[clamp(2.1rem,4vw,3.4rem)]"><Square color="var(--color-gold)" class="mt-[0.2em] size-3.5 shrink-0 md:size-4" />Basés à Lyon, au plus près de vos projets</h2>
+        <p class="mt-6 max-w-[46ch] text-lg leading-relaxed text-ink-soft">
           Nous nous déplaçons dans toute la France avec notre matériel professionnel. Notre connaissance des réglementations locales rend chaque tournage et chaque inspection fluides.
         </p>
         <div class="toggle" role="group" aria-label="Zone affichée sur la carte">
@@ -35,6 +35,7 @@ const route = (x: number, y: number) => {
       </div>
 
       <figure class="map-frame">
+        <div class="viewfinder" style={{ '--vf': 'var(--color-ink)', '--vf-inset': '0px' }}>
         <svg viewBox={`0 0 ${width} ${height}`} class="map" role="img" aria-labelledby="coverage-caption">
           <g class="cam">
             <g class="regions">
@@ -87,16 +88,17 @@ const route = (x: number, y: number) => {
             </g>
           </g>
         </svg>
-        <figcaption id="coverage-caption" class="caption">
+        </div>
+        <figcaption id="coverage-caption" class="caption hud-text">
           <span data-caption-lyon>Lyon et sa région : notre base, d’où partent toutes nos missions.</span>
           <span data-caption-france>Toute la France : nous partons de Lyon avec notre matériel, partout sur le territoire.</span>
         </figcaption>
-        <p class="credit">Contours : IGN Admin Express, Licence ouverte</p>
+        <p class="credit hud-text">Contours : IGN Admin Express, Licence ouverte</p>
       </figure>
     </div>
   </div>
 
-  <div class="wrap pb-20 md:pb-28">
+  <div class="wrap pb-[clamp(80px,10vw,128px)]">
     <ul class="grid gap-x-10 gap-y-10 pt-4 sm:grid-cols-2 lg:grid-cols-4">
       {
         COMMITMENTS.map((item, i) => (
@@ -123,9 +125,9 @@ const route = (x: number, y: number) => {
     top: 0;
     height: 100svh;
     display: grid;
-    grid-template-columns: 5fr 7fr;
+    grid-template-columns: 6fr 6fr;
     align-items: center;
-    gap: 48px;
+    gap: 56px;
     padding-top: 72px;
   }
   .toggle {
@@ -180,7 +182,6 @@ const route = (x: number, y: number) => {
   }
   .credit {
     margin-top: 4px;
-    font-size: 12px;
     color: var(--color-muted);
   }
 
@@ -197,13 +198,13 @@ const route = (x: number, y: number) => {
     transform: scale(calc(1 / var(--z)));
   }
   .regions path {
-    fill: var(--color-paper);
+    fill: var(--color-mist);
     stroke: rgb(0 0 0 / 0.22);
     stroke-width: 1;
     vector-effect: non-scaling-stroke;
   }
   .regions path[data-region='84'] {
-    fill: color-mix(in srgb, var(--color-gold) calc(8% + var(--t) * 14%), white);
+    fill: color-mix(in srgb, var(--color-gold) calc(10% + var(--t) * 14%), var(--color-mist));
   }
   .departments {
     opacity: var(--t);
@@ -255,7 +256,7 @@ const route = (x: number, y: number) => {
     text-anchor: middle;
     fill: var(--color-ink);
     paint-order: stroke;
-    stroke: var(--color-mist);
+    stroke: var(--color-paper);
     stroke-width: 4px;
   }
   .cities {
@@ -295,7 +296,7 @@ const route = (x: number, y: number) => {
     font-stretch: 118%;
     fill: var(--color-ink);
     paint-order: stroke;
-    stroke: var(--color-mist);
+    stroke: var(--color-paper);
     stroke-width: 5px;
   }
 

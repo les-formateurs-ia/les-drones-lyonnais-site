@@ -76,6 +76,47 @@
   padding-inline: clamp(16px, 4.5vw, 56px);
 }
 
+/* Section rhythm: every section breathes the same. */
+@utility section-pad {
+  padding-block: clamp(80px, 10vw, 128px);
+}
+
+/* Data labels (flight data, sensors, captions): the condensed cut of the same family,
+   like the readouts of a drone's screen. */
+@utility hud-text {
+  font-stretch: 75%;
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Viewfinder: the four corner marks of the drone camera, drawn around any frame.
+   Colour with --vf (defaults to white on dark, set it to ink on light). */
+@utility viewfinder {
+  --vf: rgb(255 255 255 / 0.8);
+  --vf-size: 22px;
+  --vf-inset: 12px;
+  position: relative;
+  &::after {
+    content: '';
+    position: absolute;
+    inset: var(--vf-inset);
+    z-index: 3;
+    pointer-events: none;
+    background:
+      linear-gradient(var(--vf), var(--vf)) top left / var(--vf-size) 1.5px,
+      linear-gradient(var(--vf), var(--vf)) top left / 1.5px var(--vf-size),
+      linear-gradient(var(--vf), var(--vf)) top right / var(--vf-size) 1.5px,
+      linear-gradient(var(--vf), var(--vf)) top right / 1.5px var(--vf-size),
+      linear-gradient(var(--vf), var(--vf)) bottom left / var(--vf-size) 1.5px,
+      linear-gradient(var(--vf), var(--vf)) bottom left / 1.5px var(--vf-size),
+      linear-gradient(var(--vf), var(--vf)) bottom right / var(--vf-size) 1.5px,
+      linear-gradient(var(--vf), var(--vf)) bottom right / 1.5px var(--vf-size);
+    background-repeat: no-repeat;
+  }
+}
+
 /* Wide display cut for titles. */
 @utility display {
   font-stretch: 125%;

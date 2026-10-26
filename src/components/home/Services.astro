@@ -5,7 +5,7 @@
 // letterbox for cinema… Every row links to its service page.
 import { getImage } from 'astro:assets';
 import type { ImageMetadata } from 'astro';
-import Square from '../ui/Square.astro';
+import SectionHeader from '../ui/SectionHeader.astro';
 import Button from '../ui/Button.astro';
 import { SERVICE_GROUPS, type Sensor } from '../../data/home';
 import { ACTIVITIES } from '../../data/site';
@@ -29,11 +29,16 @@ const SENSOR_LABEL: Record<Sensor, string> = {
   grade: 'Étalonnage',
 };
 
+// Every photo is cropped to the screen's 16:10 at build time, so all shots share the
+// exact same dimensions whatever the source.
+const SIZES = [640, 960, 1280];
 const services = SERVICE_GROUPS.flatMap((g) => g.services);
 const shots = await Promise.all(
   services.map(async (s) => {
-    const img = await getImage({ src: photo(s.image), widths: [640, 960, 1280], format: 'webp' });
-    return { ...s, src: img.src, srcset: img.srcSet.attribute };
+    const crops = await Promise.all(
+      SIZES.map((w) => getImage({ src: photo(s.image), width: w, height: Math.round((w * 10) / 16), fit: 'cover', format: 'webp' })),
+    );
+    return { ...s, src: crops[1].src, srcset: crops.map((c, i) => `${c.src} ${SIZES[i]}w`).join(', ') };
   }),
 );
 const first = shots[0];
@@ -41,24 +46,18 @@ let index = 0;
 ---
 
 <section aria-labelledby="services-title" class="services bg-ink text-white">
-  <div class="wrap py-20 md:py-28">
-    <div class="grid gap-6 lg:grid-cols-12 lg:items-end" data-reveal>
-      <div class="flex items-start gap-4 lg:col-span-7">
-        <Square color={ACTIVITIES.prestations.color} class="mt-3 size-4" />
-        <h2 id="services-title" class="display text-[clamp(2.2rem,4.4vw,3.8rem)]">Nos prestations par drone</h2>
-      </div>
-      <div class="flex flex-col items-start gap-5 lg:col-span-5">
-        <p class="max-w-[44ch] text-lg leading-relaxed text-white/70">
-          Un même drone, plusieurs façons de voir : thermique, relevé, maillage 3D ou image de cinéma. Survolez une prestation pour voir à travers son capteur.
-        </p>
-        <Button href={ACTIVITIES.prestations.href} variant="outline-light">Toutes les prestations</Button>
-      </div>
-    </div>
+  <div class="wrap section-pad">
+    <SectionHeader id="services-title" title="Nos prestations par drone" color={ACTIVITIES.prestations.color} dark>
+      <p class="max-w-[44ch]">
+        Un même drone, plusieurs façons de voir : thermique, relevé, maillage 3D ou image de cinéma. Survolez une prestation pour voir à travers son capteur.
+      </p>
+      <Button href={ACTIVITIES.prestations.href} variant="outline-light">Toutes les prestations</Button>
+    </SectionHeader>
 
     <div class="mt-14 grid gap-10 lg:mt-20 lg:grid-cols-12">
       <!-- Control screen: pinned while the list scrolls past -->
       <div class="viewer-col lg:col-span-7">
-        <figure class="viewer" data-sensor={first.sensor} aria-hidden="true">
+        <figure class="viewer viewfinder hud-text" data-sensor={first.sensor} aria-hidden="true">
           {
             shots.map((shot, i) => (
               <div class="shot" data-shot={i} data-sensor={shot.sensor} data-active={i === 0 || undefined}>
@@ -86,12 +85,11 @@ let index = 0;
           <div class="ov ov-detect"><span class="box b1">Zone 01</span><span class="box b2">Zone 02</span></div>
           <div class="ov ov-lowlight"></div>
           <div class="ov ov-timelapse"><span class="speed">× 1 000</span></div>
-          <div class="ov ov-cine"><span class="bar top"></span><span class="bar bottom"></span><span class="fmt">4K &nbsp;25p &nbsp;2.39:1</span></div>
+          <div class="ov ov-cine"><span class="guides"></span><span class="fmt">4K &nbsp;25p &nbsp;2.39:1</span></div>
           <div class="ov ov-live"><span class="onair"><i></i>Direct</span></div>
           <div class="ov ov-grade"><span class="tag log">Log</span><span class="tag rec">Étalonné</span></div>
 
           <span class="scan"></span>
-          <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
           <figcaption class="readout">
             <span class="sensor" data-sensor-label>{SENSOR_LABEL[first.sensor]}</span>
             <span class="title" data-title>{first.label}</span>
@@ -113,7 +111,7 @@ let index = 0;
                     <li class="border-b border-white/15">
                       <a href={service.href} class="row" data-key={i} data-sensor-label={SENSOR_LABEL[service.sensor]} data-sensor={service.sensor} data-title={service.label}>
                         <span class="row-label">{service.label}</span>
-                        <span class="row-sensor">{SENSOR_LABEL[service.sensor]}</span>
+                        <span class="row-sensor hud-text">{SENSOR_LABEL[service.sensor]}</span>
                       </a>
                     </li>
                   );
@@ -161,11 +159,6 @@ let index = 0;
     aspect-ratio: 16 / 10;
     overflow: hidden;
     background: #0b0b0b;
-    font-stretch: 75%;
-    font-size: 12px;
-    font-weight: 500;
-    letter-spacing: 0.05em;
-    font-variant-numeric: tabular-nums;
   }
   .shot {
     position: absolute;
@@ -347,30 +340,17 @@ let index = 0;
     font-weight: 700;
   }
 
-  .bar {
+  /* Cinema: 2.39:1 framing guides over the full picture (no black bars, so every shot
+     keeps the same size). */
+  .guides {
     position: absolute;
-    inset-inline: 0;
-    height: 12%;
-    background: #000;
-    transition: transform 500ms var(--ease-out-strong);
-  }
-  .bar.top {
-    top: 0;
-    transform: translateY(-100%);
-  }
-  .bar.bottom {
-    bottom: 0;
-    transform: translateY(100%);
-  }
-  .viewer[data-sensor='cine'] .bar {
-    transform: none;
+    inset: 12% 6%;
+    border-block: 1px dashed rgb(255 255 255 / 0.55);
   }
   .fmt {
     position: absolute;
-    top: 3.5%;
+    top: 52px;
     right: 24px;
-    translate: 0 -50%;
-    margin-top: 6px;
   }
 
   .onair {
@@ -411,38 +391,7 @@ let index = 0;
     right: 24px;
   }
 
-  /* Frame, scan line and readout */
-  .corner {
-    position: absolute;
-    width: 22px;
-    height: 22px;
-    border: 0 solid rgb(255 255 255 / 0.8);
-    z-index: 2;
-  }
-  .corner.tl {
-    top: 14px;
-    left: 14px;
-    border-top-width: 1.5px;
-    border-left-width: 1.5px;
-  }
-  .corner.tr {
-    top: 14px;
-    right: 14px;
-    border-top-width: 1.5px;
-    border-right-width: 1.5px;
-  }
-  .corner.bl {
-    bottom: 14px;
-    left: 14px;
-    border-bottom-width: 1.5px;
-    border-left-width: 1.5px;
-  }
-  .corner.br {
-    bottom: 14px;
-    right: 14px;
-    border-bottom-width: 1.5px;
-    border-right-width: 1.5px;
-  }
+  /* Scan line and readout */
   .scan {
     position: absolute;
     inset: 0 0 auto;
@@ -522,9 +471,6 @@ let index = 0;
   }
   .row-sensor {
     flex-shrink: 0;
-    font-size: 12px;
-    font-stretch: 75%;
-    letter-spacing: 0.05em;
     color: rgb(255 255 255 / 0.4);
   }
   .row[data-current] {
@@ -556,8 +502,7 @@ let index = 0;
 
   @media (prefers-reduced-motion: reduce) {
     .shot img,
-    .row-label,
-    .bar {
+    .row-label {
       transition: none;
     }
     .shot[data-active] img,

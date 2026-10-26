@@ -3,15 +3,18 @@
 // rendered twice so the loop is seamless; the copy is hidden from assistive tech.
 // Reduced motion: a still, wrapped wall of logos.
 import { Image } from 'astro:assets';
+import SectionHeader from '../ui/SectionHeader.astro';
 import { CLIENTS } from '../../data/clients';
 
 const half = Math.ceil(CLIENTS.length / 2);
 const rows = [CLIENTS.slice(0, half), CLIENTS.slice(half)];
 ---
 
-<section aria-labelledby="clients-title" class="expand-in bg-paper pt-20 pb-20 md:pt-28 md:pb-28">
-  <div class="wrap mb-10 md:mb-12" data-reveal>
-    <h2 id="clients-title" class="text-xl font-bold [font-stretch:112%]">Ils nous font confiance</h2>
+<section aria-labelledby="clients-title" class="expand-in section-pad bg-paper">
+  <div class="wrap mb-12 md:mb-16">
+    <SectionHeader id="clients-title" title="Ils nous font confiance">
+      <p class="max-w-[44ch]">Industriels, groupes de construction, chaînes de télévision et marques : {CLIENTS.length} clients nous ont confié leurs projets.</p>
+    </SectionHeader>
   </div>
 
   <div class="marquee flex flex-col gap-4 md:gap-6">

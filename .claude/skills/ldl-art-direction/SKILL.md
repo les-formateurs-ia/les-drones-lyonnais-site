@@ -24,6 +24,18 @@ The identity comes from the brand's existing assets, refined — not from a temp
 - **True black and white.** `#000` and `#fff`, one quiet grey (`--color-mist`) for
   alternating sections. No cream, no tinted near-black.
 
+## Shared building blocks (keep the page coherent)
+
+- `SectionHeader` (components/ui): LDL square + title + intro, same grid and size for
+  every section. Section titles: clamp(2.1rem, 4vw, 3.4rem).
+- `section-pad` utility: the vertical rhythm of every section.
+- `viewfinder` utility: the drone camera's corner marks around any framed picture
+  (hero, services screen, portraits, map). Set `--vf` to ink on light backgrounds.
+- `hud-text` utility: condensed cut for data labels (flight data, sensors, captions,
+  skills).
+- Two backgrounds only: ink and paper. Colour photos are "in focus"; at rest, photos
+  of people are black and white.
+
 ## Typography
 
 One family: Archivo variable (weight 100–900, width 62–125%).

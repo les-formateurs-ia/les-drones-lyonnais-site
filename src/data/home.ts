@@ -1,6 +1,10 @@
 // Homepage content. Copy taken from the current homepage and service pages,
 // reorganised; links point to the URLs already indexed on the WordPress site.
-import type { AvatarId } from '../components/ui/Avatar.astro';
+import type { ImageMetadata } from 'astro';
+import dylan from '../assets/team/dylan.png';
+import theo from '../assets/team/theo.png';
+import margot from '../assets/team/margot.png';
+import pop from '../assets/team/pop.png';
 
 export const HERO = {
   title: 'Pilotes de drone à\u00a0Lyon, en mission partout en France',
@@ -81,8 +85,8 @@ export interface Member {
   role: string;
   bio: string;
   skills: string[];
-  /** Illustrated avatar (components/ui/Avatar.astro). */
-  avatar: AvatarId;
+  /** Cut-out portrait (transparent background), shown in black and white until active. */
+  photo: ImageMetadata;
 }
 
 export const TEAM: Member[] = [
@@ -91,28 +95,28 @@ export const TEAM: Member[] = [
     role: 'Fondateur et directeur',
     bio: 'À l’origine des Drones Lyonnais, il dirige les opérations aériennes et intervient sur les projets techniques complexes et l’audiovisuel haut de gamme.',
     skills: ['Direction de projet', 'Pilotage drone', 'Photogrammétrie 3D', 'Thermographie', 'Audiovisuel'],
-    avatar: 'dylan',
+    photo: dylan,
   },
   {
     name: 'Théo',
     role: 'Audiovisuel et formation',
     bio: 'Issu d’une école de cinéma, il signe la réalisation de nos productions et forme nos stagiaires aux métiers des médias et de la communication.',
     skills: ['Réalisation', 'Cadrage', 'Drone cinéma', 'FPV', 'Montage vidéo'],
-    avatar: 'theo',
+    photo: theo,
   },
   {
     name: 'Margot',
     role: 'Communication et relation client',
     bio: 'Elle suit chaque projet de près, organise les missions et fait vivre l’image de l’entreprise sur nos supports.',
     skills: ['Relation client', 'Organisation des projets', 'Suivi administratif', 'Réseaux sociaux'],
-    avatar: 'margot',
+    photo: margot,
   },
   {
     name: 'Pop',
     role: 'Mascotte officielle',
     bio: 'Toujours au bureau, il accueille les visiteurs et accompagne parfois l’équipe en tournage.',
     skills: ['Accueil des visiteurs', 'Moral des troupes', 'Expert officiel en câlins'],
-    avatar: 'pop',
+    photo: pop,
   },
 ];
 

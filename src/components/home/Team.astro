@@ -1,30 +1,28 @@
 ---
 // The team. The group photo opens up, then the crew is introduced one by one: on large
 // screens the stage stays pinned while scrolling hands over from one member to the
-// next — names on the left, the member's avatar and story on the right. The avatar
-// looks towards the pointer. On small screens, the members are simply stacked.
+// next — names on the left, the member's portrait and story on the right. The portrait
+// takes its colours back. On small screens, the members are simply stacked.
 import { Image } from 'astro:assets';
 import equipe from '../../assets/images/equipe.jpg';
-import Avatar from '../ui/Avatar.astro';
+import Portrait from '../ui/Portrait.astro';
+import SectionHeader from '../ui/SectionHeader.astro';
 import { TEAM, TEAM_INTRO } from '../../data/home';
 ---
 
 <section aria-labelledby="team-title" class="team bg-paper">
-  <div class="wrap pt-20 md:pt-28">
-    <div class="relative">
-      <div class="z-10 flex flex-col gap-5 pb-8 lg:absolute lg:inset-y-0 lg:left-0 lg:w-[44%] lg:justify-center lg:pb-0 lg:pl-12" data-reveal>
-        <h2 id="team-title" class="display text-[clamp(2rem,3.4vw,3rem)]">{TEAM_INTRO.title}</h2>
-        <p class="max-w-[42ch] text-lg leading-relaxed text-ink-soft">{TEAM_INTRO.text}</p>
-      </div>
-      <div class="window overflow-hidden">
-        <Image
-          src={equipe}
-          alt="Dylan, Théo et Margot, l’équipe des Drones Lyonnais, avec Pop, leur chien samoyède"
-          widths={[640, 960, 1280, 1920]}
-          sizes="(min-width: 1280px) 1168px, 92vw"
-          class="team-photo aspect-[2125/762] w-full object-cover max-lg:aspect-[16/10] max-lg:object-[80%_50%]"
-        />
-      </div>
+  <div class="wrap pt-[clamp(80px,10vw,128px)]">
+    <SectionHeader id="team-title" title={TEAM_INTRO.title}>
+      <p class="max-w-[42ch]">{TEAM_INTRO.text}</p>
+    </SectionHeader>
+    <div class="window mt-12 overflow-hidden md:mt-16">
+      <Image
+        src={equipe}
+        alt="Dylan, Théo et Margot, l’équipe des Drones Lyonnais, avec Pop, leur chien samoyède"
+        widths={[640, 960, 1280, 1920]}
+        sizes="(min-width: 1280px) 1168px, 92vw"
+        class="team-photo aspect-[2125/762] w-full object-cover max-lg:aspect-[16/10] max-lg:object-[80%_50%]"
+      />
     </div>
   </div>
 
@@ -45,9 +43,9 @@ import { TEAM, TEAM_INTRO } from '../../data/home';
       <div class="cards">
         {
           TEAM.map((member, i) => (
-            <article class="card" id={`member-${i}`} data-card={i} data-active={i === 0 || undefined}>
+            <article class="card" id={`member-${i}`} data-card={i} data-active={i === 0 || undefined} data-reveal>
               <div class="card-avatar">
-                <Avatar who={member.avatar} class="size-full" />
+                <Portrait photo={member.photo} alt={`${member.name}, ${member.role.toLowerCase()}`} class="size-full" />
               </div>
               <div class="card-text">
                 <h3 class="card-name">{member.name}</h3>
@@ -90,7 +88,7 @@ import { TEAM, TEAM_INTRO } from '../../data/home';
   }
   @keyframes open-window {
     from {
-      clip-path: inset(12% 0 12% 46%);
+      clip-path: inset(10% 18% 10% 18%);
     }
     to {
       clip-path: inset(0 0 0 0);
@@ -141,6 +139,8 @@ import { TEAM, TEAM_INTRO } from '../../data/home';
     color: var(--color-ink-soft);
   }
   .card-skills {
+    font-stretch: 75%;
+    letter-spacing: 0.05em;
     display: flex;
     flex-wrap: wrap;
     gap: 6px 18px;
@@ -254,7 +254,7 @@ import { TEAM, TEAM_INTRO } from '../../data/home';
       font-size: 1.125rem;
     }
 
-    /* Hand-over between members: the avatar swings in, the words follow. */
+    /* Hand-over between members: the portrait rises in, the words follow. */
     .card-avatar,
     .card-text > * {
       opacity: 0;
@@ -263,7 +263,7 @@ import { TEAM, TEAM_INTRO } from '../../data/home';
         transform 700ms var(--ease-out-strong);
     }
     .card-avatar {
-      transform: translateY(24px) rotate(-8deg) scale(0.92);
+      transform: translateY(24px) scale(0.94);
     }
     .card-text > * {
       transform: translateY(18px);
@@ -295,7 +295,7 @@ import { TEAM, TEAM_INTRO } from '../../data/home';
 
 <script>
   // Pinned crew: the scroll position inside the crew picks the member; the names jump
-  // there. Avatars look towards the pointer.
+  // there. The portrait in focus drifts slightly with the pointer.
   const crew = document.querySelector<HTMLElement>('.team .crew');
   if (crew) {
     const names = [...crew.querySelectorAll<HTMLButtonElement>('.name')];
@@ -336,16 +336,15 @@ import { TEAM, TEAM_INTRO } from '../../data/home';
       addEventListener(
         'pointermove',
         (e) => {
-          const avatar = cards[current]?.querySelector<SVGElement>('svg');
+          const avatar = cards[current]?.querySelector<HTMLElement>('.portrait');
           if (!avatar) return;
           const r = avatar.getBoundingClientRect();
           if (r.bottom < 0 || r.top > innerHeight) return;
           const dx = (e.clientX - (r.left + r.width / 2)) / innerWidth;
           const dy = (e.clientY - (r.top + r.height / 2)) / innerHeight;
           const clamp = (v: number) => Math.max(-1, Math.min(1, v * 2.5));
-          avatar.style.setProperty('--ex', clamp(dx).toFixed(3));
-          avatar.style.setProperty('--ey', clamp(dy).toFixed(3));
-          avatar.style.setProperty('--hx', clamp(dx).toFixed(3));
+          avatar.style.setProperty('--px', clamp(dx).toFixed(3));
+          avatar.style.setProperty('--py', clamp(dy).toFixed(3));
         },
         { passive: true },
       );

@@ -65,8 +65,9 @@ public/            fonts, favicon, robots.txt
 - Services: "same drone, different sensors" — a pinned control screen shows each
   service through its camera mode (SVG filters: thermal, survey; overlays for mesh,
   detection, cinema, live, grading). Photos from the current site, in src/assets/services.
-- Team: illustrated SVG avatars (components/ui/Avatar.astro), drawn for the brand,
-  not traced; pinned "crew" stage on large screens, stacked cards on small ones.
+- Team: real photos, cut out (src/assets/team), shown by components/ui/Portrait.astro
+  in black and white, colour when in focus. Illustrated or traced avatars were tried
+  and rejected by the client: keep real photos.
 - Coverage: pinned map of France (src/data/france-map.ts, IGN Admin Express, Licence
   ouverte — keep the credit) zooming to Lyon on scroll; "Toute la France" overrides.
 - Reveals fire once (`data-reveal` + `src/lib/reveal.ts`, the only client script).
