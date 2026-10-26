@@ -27,3 +27,6 @@ pnpm-debug.log*
 .dev.vars
 .wrangler/
 
+
+# Raw clips for npm run videos (only the encoded files in public/team are kept)
+media-src/

@@ -66,10 +66,12 @@ public/            fonts, favicon, robots.txt
 - Services: "same drone, different sensors" — a pinned control screen shows each
   service through its camera mode (SVG filters: thermal, survey; overlays for mesh,
   detection, cinema, live, grading). Photos from the current site, in src/assets/services.
-- Team: real photos, cut out (src/assets/team), brought to life in WebGL by
-  lib/live-portrait.ts (breathing, blinking, head and eyes following the pointer, Pop
-  panting), driven by landmarks per photo (`rig` in data/home.ts — update them if a
-  photo changes). Still photo as fallback and under reduced motion. Illustrated or traced avatars were tried
+- Team: real photos, cut out (src/assets/team). Each can get a looping portrait video:
+  raw clips in media-src/team/<name>.mp4 (gitignored) → `npm run videos` (ffmpeg-static,
+  720×720 square, WebM + MP4, no sound; --boomerang for a forward/back loop) →
+  public/team/. Portrait.astro uses them only if the files exist and plays them only
+  while on screen. Illustrated SVG avatars and WebGL-warped photos were tried and
+  rejected by the client. Illustrated or traced avatars were tried
   and rejected by the client: keep real photos.
 - Coverage: pinned map of France (src/data/france-map.ts, IGN Admin Express, Licence
   ouverte — keep the credit) zooming to Lyon on scroll; "Toute la France" overrides.
