@@ -161,16 +161,15 @@ const tapeOffset = (heading: number) => COMPASS / 2 - ((8 + heading / 45) * TICK
     </ul>
   </div>
 
-  <!-- Gold rim of the lens opening, drawn around the hole as it widens. -->
-  <div class="lens-ring" aria-hidden="true"></div>
+  <!-- Darkens as the page scrolls over the hero. -->
+  <div class="shade" aria-hidden="true"></div>
 
   <script type="application/json" data-flight set:html={JSON.stringify(Object.fromEntries(modes.map((m) => [m.activity.id, m.flight])))} />
 </section>
 
 <style>
   .hero {
-    position: sticky;
-    top: 0;
+    position: relative;
     height: 100svh;
     min-height: 600px;
     overflow: hidden;
@@ -556,16 +555,11 @@ const tapeOffset = (heading: number) => COMPASS / 2 - ((8 + heading / 45) * TICK
     outline-offset: 4px;
   }
 
-  .lens-ring {
+  .shade {
     position: absolute;
-    top: 46%;
-    left: 50%;
-    z-index: 5;
-    width: calc(var(--lens) * 2 + 6px);
-    height: calc(var(--lens) * 2 + 6px);
-    translate: -50% -50%;
-    border: 3px solid var(--color-gold);
-    border-radius: 50%;
+    inset: 0;
+    z-index: 4;
+    background: #000;
     opacity: 0;
     pointer-events: none;
   }
@@ -679,99 +673,6 @@ const tapeOffset = (heading: number) => COMPASS / 2 - ((8 + heading / 45) * TICK
     }
   }
 
-  /* ---------- Hand-over: through the lens ----------
-     Over the first screen of scrolling the flight display switches off, the camera
-     zooms towards the reticle, and the reticle opens like a lens: a widening hole
-     (gold-rimmed) through which the next section appears, until it fills the screen.
-     The page behind holds still during the opening (see index.astro). */
-  @supports (animation-timeline: scroll()) {
-    @media (prefers-reduced-motion: no-preference) {
-      .hero {
-        mask-image: radial-gradient(circle at 50% 46%, transparent var(--lens), #000 calc(var(--lens) + 0.5px));
-        animation-name: lens-open;
-        animation-timing-function: cubic-bezier(0.5, 0, 0.75, 0);
-        animation-fill-mode: both;
-        animation-timeline: scroll(root);
-        animation-range: 12svh 100svh;
-      }
-      .lens-ring {
-        animation-name: ring-on;
-        animation-timing-function: cubic-bezier(0.5, 0, 0.75, 0);
-        animation-fill-mode: both;
-        animation-timeline: scroll(root);
-        animation-range: 12svh 100svh;
-      }
-      .feeds {
-        animation-name: signal, dive;
-        animation-duration: 1300ms, auto;
-        animation-timing-function: var(--ease-out-strong), linear;
-        animation-delay: 250ms, 0s;
-        animation-fill-mode: backwards, both;
-        animation-timeline: auto, scroll(root);
-        animation-range: normal, 0 100svh;
-      }
-      .hud,
-      .selector {
-        animation-name: switch-off;
-        animation-timing-function: linear;
-        animation-fill-mode: both;
-        animation-timeline: scroll(root);
-        animation-range: 0 22svh;
-      }
-      /* The reticle is where the lens opens: it locks on (gold) just before. */
-      .reticle {
-        animation-name: appear, lock-on;
-        animation-duration: 700ms, auto;
-        animation-timing-function: var(--ease-out-strong), linear;
-        animation-delay: 700ms, 0s;
-        animation-fill-mode: backwards, both;
-        animation-timeline: auto, scroll(root);
-        animation-range: normal, 0 12svh;
-      }
-    }
-  }
-  @keyframes lens-open {
-    from {
-      --lens: 0px;
-    }
-    to {
-      --lens: 80vmax;
-      visibility: hidden;
-    }
-  }
-  @keyframes ring-on {
-    0% {
-      opacity: 0;
-    }
-    8% {
-      opacity: 1;
-    }
-    85% {
-      opacity: 1;
-    }
-    100% {
-      opacity: 0;
-    }
-  }
-  @keyframes dive {
-    to {
-      transform: scale(2.4);
-      filter: blur(3px);
-    }
-  }
-  @keyframes switch-off {
-    to {
-      opacity: 0;
-      transform: translateY(-16px);
-    }
-  }
-  @keyframes lock-on {
-    to {
-      color: var(--color-gold);
-      scale: 1.25;
-    }
-  }
-
   @media (prefers-reduced-motion: reduce) {
     .feed,
     .feed-img,
@@ -807,6 +708,37 @@ const tapeOffset = (heading: number) => COMPASS / 2 - ((8 + heading / 45) * TICK
     const speed = $('[data-speed]');
     const heading = $('[data-heading]');
     const timecode = $('[data-timecode]');
+
+    // Hand-over to the page: while the page scrolls over the hero, the picture moves
+    // down at half speed (parallax), blurs and darkens, and the display fades out.
+    // Plain scroll + requestAnimationFrame, so it works in every browser.
+    if (!still) {
+      const feeds = $('.feeds');
+      const shade = $('.shade');
+      const overlays = [$('.hud'), $('.selector')];
+      let ticking = false;
+      const update = () => {
+        ticking = false;
+        const h = hero.offsetHeight;
+        const p = Math.min(1, Math.max(0, scrollY / h));
+        if (p >= 1 && feeds.dataset.done) return;
+        feeds.dataset.done = p >= 1 ? '1' : '';
+        feeds.style.transform = `translate3d(0, ${(scrollY * 0.5).toFixed(1)}px, 0) scale(${(1 + p * 0.08).toFixed(4)})`;
+        feeds.style.filter = p > 0 ? `blur(${(p * 12).toFixed(2)}px)` : '';
+        shade.style.opacity = (p * 0.75).toFixed(3);
+        overlays.forEach((el) => {
+          el.style.opacity = Math.max(0, 1 - p * 2.5).toFixed(3);
+          el.style.transform = `translate3d(0, ${(scrollY * 0.25).toFixed(1)}px, 0)`;
+        });
+      };
+      addEventListener('scroll', () => {
+        if (!ticking) {
+          ticking = true;
+          requestAnimationFrame(update);
+        }
+      }, { passive: true });
+      update();
+    }
     const compass = $('.compass');
     const tape = $('.tape');
     const tick = Number(compass.dataset.tick);
