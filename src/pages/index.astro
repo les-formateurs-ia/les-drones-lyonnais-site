@@ -3,6 +3,7 @@ import { getImage } from 'astro:assets';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import JsonLd from '../components/seo/JsonLd.astro';
 import Hero from '../components/home/Hero.astro';
+import Manifesto from '../components/home/Manifesto.astro';
 import ClientLogos from '../components/home/ClientLogos.astro';
 import Services from '../components/home/Services.astro';
 import Team from '../components/home/Team.astro';
@@ -37,12 +38,16 @@ const organization = {
 };
 ---
 
-<BaseLayout title={title} description={description} image={abs(social.src)}>
+<BaseLayout title={title} description={description} image={abs(social.src)} headerOverlay>
   <JsonLd slot="head" data={organization} />
   <Hero />
-  <ClientLogos />
-  <Services />
-  <Team />
-  <Commitments />
-  <FinalCta />
+  <!-- The rest of the page slides over the hero like a curtain. -->
+  <div class="relative z-10 bg-paper">
+    <Manifesto />
+    <ClientLogos />
+    <Services />
+    <Team />
+    <Commitments />
+    <FinalCta />
+  </div>
 </BaseLayout>

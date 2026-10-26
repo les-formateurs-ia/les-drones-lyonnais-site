@@ -1,35 +1,37 @@
 ---
+// Black band that opens to full width as it arrives. Every service is a row linking
+// to its page; pointing at a row sweeps in the Prestations blue.
 import Square from '../ui/Square.astro';
 import Button from '../ui/Button.astro';
 import { SERVICE_GROUPS } from '../../data/home';
 import { ACTIVITIES } from '../../data/site';
 ---
 
-<section aria-labelledby="services-title" class="bg-mist">
-  <div class="wrap grid gap-12 py-16 md:py-24 lg:grid-cols-12 lg:gap-10">
-    <div class="flex flex-col items-start gap-6 lg:col-span-4 lg:sticky lg:top-8 lg:self-start">
-      <h2 id="services-title" class="display flex items-start gap-4 text-[clamp(1.8rem,3vw,2.5rem)]">
-        <Square color={ACTIVITIES.prestations.color} class="mt-[0.18em] size-[0.42em]" />
-        Nos prestations par drone
-      </h2>
-      <p class="max-w-[40ch] text-lg leading-relaxed text-ink-soft">
+<section aria-labelledby="services-title" class="expand-in bg-ink text-white">
+  <div class="wrap grid gap-14 py-20 md:py-32 lg:grid-cols-12 lg:gap-10">
+    <div class="flex flex-col items-start gap-7 lg:sticky lg:top-28 lg:col-span-4 lg:self-start" data-reveal>
+      <Square color={ACTIVITIES.prestations.color} class="size-4" />
+      <h2 id="services-title" class="display text-[clamp(2.2rem,4vw,3.4rem)]">Nos prestations par drone</h2>
+      <p class="max-w-[38ch] text-lg leading-relaxed text-white/70">
         De l’inspection d’un ouvrage au film d’entreprise, nous préparons, pilotons et livrons chaque mission nous-mêmes.
       </p>
-      <Button href={ACTIVITIES.prestations.href} variant="outline">Voir toutes les prestations</Button>
+      <Button href={ACTIVITIES.prestations.href} variant="outline-light">Voir toutes les prestations</Button>
     </div>
 
-    <div class="grid gap-12 md:grid-cols-2 md:gap-10 lg:col-span-8">
+    <div class="grid gap-14 md:grid-cols-2 md:gap-10 lg:col-span-8">
       {
         SERVICE_GROUPS.map((group) => (
           <div>
-            <h3 class="text-xl font-bold [font-stretch:112%]">{group.title}</h3>
-            <p class="mt-2 mb-5 max-w-[38ch] text-muted">{group.description}</p>
-            <ul class="border-t border-ink/15">
-              {group.services.map((service) => (
-                <li class="border-b border-ink/15">
-                  <a href={service.href} class="service-link flex items-center justify-between gap-4 py-3.5 font-medium">
-                    {service.label}
-                    <svg class="chevron size-4 shrink-0" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <div data-reveal>
+              <h3 class="text-xl font-bold [font-stretch:112%]">{group.title}</h3>
+              <p class="mt-2 mb-6 max-w-[38ch] text-white/60">{group.description}</p>
+            </div>
+            <ul class="border-t border-white/15">
+              {group.services.map((service, i) => (
+                <li class="border-b border-white/15" data-reveal style={{ '--i': i }}>
+                  <a href={service.href} class="service flex items-center justify-between gap-4 py-4 font-medium">
+                    <span class="relative">{service.label}</span>
+                    <svg class="chevron relative size-4 shrink-0" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                       <path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.6" />
                     </svg>
                   </a>
@@ -44,24 +46,51 @@ import { ACTIVITIES } from '../../data/site';
 </section>
 
 <style>
+  .service {
+    position: relative;
+    isolation: isolate;
+    padding-inline: 4px;
+  }
+  .service > span {
+    transition: transform 300ms var(--ease-out-strong);
+  }
+  /* The blue sweeps from the left edge of the row. */
+  .service::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: var(--color-prestations);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 350ms var(--ease-out-strong);
+  }
   .chevron {
-    color: var(--color-muted);
+    color: rgb(255 255 255 / 0.5);
     transition:
-      transform 200ms var(--ease-out-strong),
-      color 200ms ease-out;
+      transform 300ms var(--ease-out-strong),
+      color 200ms ease;
   }
   @media (hover: hover) and (pointer: fine) {
-    .service-link:hover .chevron {
-      color: var(--color-prestations);
-      transform: translateX(3px);
+    .service:hover > span {
+      transform: translateX(12px);
     }
-    .service-link:hover {
-      color: var(--color-prestations);
+    .service:hover::before {
+      transform: scaleX(1);
+    }
+    .service:hover .chevron {
+      color: #fff;
+      transform: translateX(-10px);
     }
   }
+  .service:focus-visible {
+    outline-offset: 0;
+  }
   @media (prefers-reduced-motion: reduce) {
+    .service > span,
+    .service::before,
     .chevron {
-      transition: none;
+      transition-duration: 0ms;
     }
   }
 </style>

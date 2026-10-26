@@ -1,32 +1,36 @@
 ---
+// The team photo opens from a framed window to its full width as it scrolls in;
+// the people come in one after the other underneath.
 import { Image } from 'astro:assets';
 import equipe from '../../assets/images/equipe.jpg';
 import { TEAM, TEAM_INTRO } from '../../data/home';
 ---
 
-<section aria-labelledby="team-title" class="py-16 md:py-24">
+<section aria-labelledby="team-title" class="bg-paper py-20 md:py-32">
   <!-- The photo's left side is an empty studio backdrop: on large screens the intro sits there. -->
   <div class="wrap">
     <div class="relative">
-      <div class="flex flex-col gap-5 pb-8 lg:absolute lg:inset-y-0 lg:left-0 lg:w-[44%] lg:justify-center lg:pb-0 lg:pl-12 z-10">
-        <h2 id="team-title" class="display text-[clamp(1.8rem,3.2vw,2.8rem)]">{TEAM_INTRO.title}</h2>
+      <div class="z-10 flex flex-col gap-5 pb-8 lg:absolute lg:inset-y-0 lg:left-0 lg:w-[44%] lg:justify-center lg:pb-0 lg:pl-12" data-reveal>
+        <h2 id="team-title" class="display text-[clamp(2rem,3.4vw,3rem)]">{TEAM_INTRO.title}</h2>
         <p class="max-w-[42ch] text-lg leading-relaxed text-ink-soft">{TEAM_INTRO.text}</p>
       </div>
-      <Image
-        src={equipe}
-        alt="Dylan, Théo et Margot, l’équipe des Drones Lyonnais, avec Pop, leur chien samoyède"
-        widths={[640, 960, 1280, 1920]}
-        sizes="(min-width: 1280px) 1168px, 92vw"
-        class="aspect-[2125/762] w-full object-cover max-lg:aspect-[16/10] max-lg:object-[80%_50%]"
-      />
+      <div class="window overflow-hidden">
+        <Image
+          src={equipe}
+          alt="Dylan, Théo et Margot, l’équipe des Drones Lyonnais, avec Pop, leur chien samoyède"
+          widths={[640, 960, 1280, 1920]}
+          sizes="(min-width: 1280px) 1168px, 92vw"
+          class="team-photo aspect-[2125/762] w-full object-cover max-lg:aspect-[16/10] max-lg:object-[80%_50%]"
+        />
+      </div>
     </div>
   </div>
 
-  <ul class="wrap mt-12 grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
+  <ul class="wrap mt-14 grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
     {
-      TEAM.map((member) => (
-        <li class="flex flex-col">
-          <Image src={member.photo} alt="" width={96} height={94} densities={[1, 2]} class="mb-5 size-20 object-contain" />
+      TEAM.map((member, i) => (
+        <li class="member flex flex-col" data-reveal style={{ '--i': i }}>
+          <Image src={member.photo} alt="" width={96} height={94} densities={[1, 2]} class="avatar mb-5 size-20 object-contain" />
           <h3 class="text-xl font-bold [font-stretch:112%]">{member.name}</h3>
           <p class="mt-1 font-medium text-gold-deep">{member.role}</p>
           <p class="mt-3 leading-relaxed text-ink-soft">{member.bio}</p>
@@ -36,3 +40,49 @@ import { TEAM, TEAM_INTRO } from '../../data/home';
     }
   </ul>
 </section>
+
+<style>
+  .avatar {
+    transition: transform 300ms var(--ease-out-strong);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .member:hover .avatar {
+      transform: rotate(-6deg) scale(1.06);
+    }
+  }
+
+  /* The window clips (overflow: hidden makes it a scroll container), so the photo
+     follows the window's named timeline rather than its own. */
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .window {
+        view-timeline: --team-window block;
+        animation-name: open-window;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: --team-window;
+        animation-range: entry 10% cover 45%;
+      }
+      .team-photo {
+        animation-name: settle;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: --team-window;
+        animation-range: entry 10% cover 45%;
+      }
+    }
+  }
+  @keyframes open-window {
+    from {
+      clip-path: inset(12% 0 12% 46%);
+    }
+    to {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+  @keyframes settle {
+    from {
+      transform: scale(1.15);
+    }
+  }
+</style>

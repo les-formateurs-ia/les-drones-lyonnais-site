@@ -1,70 +1,91 @@
 ---
+// Two rows of client logos drifting in opposite directions. Each row's list is
+// rendered twice so the loop is seamless; the copy is hidden from assistive tech.
+// Reduced motion: a still, wrapped wall of logos.
 import { Image } from 'astro:assets';
-import type { ImageMetadata } from 'astro';
+import { CLIENTS } from '../../data/clients';
 
-// Every logo in assets/clients is shown. Files are named after the client.
-const files = import.meta.glob<{ default: ImageMetadata }>('../../assets/clients/*.png', { eager: true });
-
-const NAMES: Record<string, string> = {
-  aaa: 'Alan Allman Associates',
-  'adamis-production': 'Adamis Production',
-  'credit-agricole': 'Crédit Agricole',
-  'canal-plus': 'Canal+',
-  'e-leclerc': 'E.Leclerc',
-  'fayat-batiment': 'Fayat Bâtiment',
-  'france-frais': 'France Frais',
-  'groupe-2-fleuves': 'Groupe 2 Fleuves',
-  'la-boutique-officielle': 'La Boutique Officielle',
-  'marina-rinaldi': 'Marina Rinaldi',
-  'pasino-grand': 'Pasino Grand',
-  'saint-jean': 'Saint-Jean',
-  cnrs: 'CNRS',
-  edf: 'EDF',
-  psl: 'Université PSL',
-  sncf: 'SNCF',
-  tf1: 'TF1',
-  c8: 'C8',
-};
-
-const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-
-// Logos have very different shapes. Giving each the same visual area (not the same
-// height) keeps a wide wordmark and a square badge at a comparable weight.
-const AREA = 2600;
-const MAX_HEIGHT = 56;
-
-const logos = Object.entries(files)
-  .map(([path, mod]) => {
-    const slug = path.split('/').pop()!.replace('.png', '');
-    const img = mod.default;
-    const ratio = img.width / img.height;
-    const height = Math.min(MAX_HEIGHT, Math.sqrt(AREA / ratio));
-    return { img, name: NAMES[slug] ?? capitalize(slug), width: Math.round(height * ratio), height: Math.round(height) };
-  })
-  .sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+const half = Math.ceil(CLIENTS.length / 2);
+const rows = [CLIENTS.slice(0, half), CLIENTS.slice(half)];
 ---
 
-<section aria-labelledby="clients-title" class="wrap py-16 md:py-24">
-  <div class="mb-10 flex flex-col gap-3 md:mb-14 md:flex-row md:items-end md:justify-between">
-    <h2 id="clients-title" class="display text-[clamp(1.8rem,3.4vw,2.8rem)]">Ils nous font confiance</h2>
-    <p class="max-w-[46ch] text-muted">Industriels, groupes de construction, chaînes de télévision et marques : {logos.length} clients nous ont confié leurs projets.</p>
+<section aria-labelledby="clients-title" class="bg-paper pb-20 md:pb-28">
+  <div class="wrap mb-10 md:mb-12" data-reveal>
+    <h2 id="clients-title" class="text-xl font-bold [font-stretch:112%]">Ils nous font confiance</h2>
   </div>
 
-  <ul class="grid grid-cols-4 border-t border-l border-line md:grid-cols-6 lg:grid-cols-8">
+  <div class="marquee flex flex-col gap-4 md:gap-6">
     {
-      logos.map((logo) => (
-        <li class="flex h-20 items-center justify-center border-r border-b border-line p-2.5 sm:h-24 sm:p-4 md:h-28">
-          <Image
-            src={logo.img}
-            alt={logo.name}
-            width={logo.width}
-            height={logo.height}
-            densities={[1, 2]}
-            class="max-w-full object-contain opacity-75 transition-opacity duration-200 hover-fine:opacity-100"
-            style={{ width: `${logo.width}px`, height: 'auto' }}
-          />
-        </li>
+      rows.map((row, r) => (
+        <div class="row" data-direction={r === 0 ? 'left' : 'right'}>
+          {[0, 1].map((copy) => (
+            <ul class="track" aria-hidden={copy === 1 ? 'true' : undefined}>
+              {row.map((logo) => (
+                <li class="flex h-20 w-[clamp(120px,14vw,190px)] shrink-0 items-center justify-center px-4">
+                  <Image
+                    src={logo.img}
+                    alt={copy === 1 ? '' : logo.name}
+                    width={logo.width}
+                    height={logo.height}
+                    densities={[1, 2]}
+                    class="max-w-full object-contain opacity-70"
+                    style={{ width: `${logo.width}px`, height: 'auto' }}
+                  />
+                </li>
+              ))}
+            </ul>
+          ))}
+        </div>
       ))
     }
-  </ul>
+  </div>
 </section>
+
+<style>
+  .row {
+    display: flex;
+    overflow: hidden;
+    mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+  }
+  .track {
+    display: flex;
+    flex-shrink: 0;
+    animation: drift 60s linear infinite;
+  }
+  .row[data-direction='right'] .track {
+    animation-direction: reverse;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .row:hover .track {
+      animation-play-state: paused;
+    }
+  }
+  @keyframes drift {
+    to {
+      transform: translateX(-100%);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .marquee {
+      width: 100%;
+      max-width: 1280px;
+      margin-inline: auto;
+      padding-inline: clamp(16px, 4.5vw, 56px);
+    }
+    .row {
+      mask-image: none;
+    }
+    .row,
+    .track {
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .track {
+      animation: none;
+    }
+    .track[aria-hidden] {
+      display: none;
+    }
+  }
+</style>

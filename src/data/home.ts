@@ -12,9 +12,13 @@ export const HERO = {
     'Prises de vues aériennes, inspections techniques et formations de pilotes. Nous vendons et louons aussi le matériel que nous utilisons chaque jour.',
 };
 
+// Read as one sentence that lights up word by word on scroll.
+export const MANIFESTO =
+  'Depuis six ans, nous filmons, inspectons, formons et équipons. Plus de mille missions, de Lyon à toute la France, pour des industriels, des chaînes de télévision et des marques.';
+
 export const FACTS = [
   { value: '6 ans', label: 'd’expérience' },
-  { value: '1 000+', label: 'missions réalisées' },
+  { value: '1\u00a0000+', label: 'missions réalisées' },
 ];
 
 export interface ServiceGroup {

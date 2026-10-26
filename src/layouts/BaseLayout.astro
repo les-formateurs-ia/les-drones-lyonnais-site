@@ -9,9 +9,11 @@ interface Props {
   description: string;
   image?: string;
   noindex?: boolean;
+  /** Transparent header over a full-screen hero. */
+  headerOverlay?: boolean;
 }
 
-const { title, description, image, noindex } = Astro.props;
+const { title, description, image, noindex, headerOverlay = false } = Astro.props;
 ---
 
 <!doctype html>
@@ -19,6 +21,8 @@ const { title, description, image, noindex } = Astro.props;
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Lets CSS hide not-yet-revealed elements only when the reveal script can run. -->
+    <script is:inline>document.documentElement.classList.add('js');</script>
     <link rel="preload" href="/fonts/archivo-variable.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="icon" href="/favicon.png" type="image/png" />
     <meta name="theme-color" content="#ffffff" />
@@ -27,10 +31,13 @@ const { title, description, image, noindex } = Astro.props;
   </head>
   <body>
     <a href="#contenu" class="sr-only z-50 bg-ink px-4 py-3 text-white focus:not-sr-only focus:fixed focus:top-3 focus:left-3">Aller au contenu</a>
-    <Header />
+    <Header overlay={headerOverlay} />
     <main id="contenu">
       <slot />
     </main>
     <Footer />
+    <script>
+      import '../lib/reveal';
+    </script>
   </body>
 </html>

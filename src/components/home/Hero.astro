@@ -1,34 +1,385 @@
 ---
-import Button from '../ui/Button.astro';
-import Activities from './Activities.astro';
-import { HERO, FACTS } from '../../data/home';
-import { SITE } from '../../data/site';
+// Full-screen triptych: the three ways in — Prestations, Boutique / Location, Formations.
+// Black and white photos; the one you point at widens and takes its colours back.
+// It opens with a single orchestrated sequence, then stays behind the page like a
+// backdrop while the content scrolls over it (curtain).
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+import prestations from '../../assets/images/prestations.jpg';
+import boutiqueLocation from '../../assets/images/boutique-location.jpg';
+import formations from '../../assets/images/formations.jpg';
+import Square from '../ui/Square.astro';
+import { HERO } from '../../data/home';
+import { ACTIVITIES, type Activity } from '../../data/site';
+
+interface PanelLink {
+  activity: Activity;
+  text: string;
+}
+interface Panel {
+  photo: ImageMetadata;
+  /** Where the crop stays anchored when the panel is wide and short (mobile). */
+  focus: string;
+  links: PanelLink[];
+}
+
+const panels: Panel[] = [
+  {
+    photo: prestations,
+    focus: '50% 78%',
+    links: [{ activity: ACTIVITIES.prestations, text: 'Prises de vues, inspections et relevés 3D' }],
+  },
+  {
+    photo: boutiqueLocation,
+    focus: '50% 80%',
+    links: [
+      { activity: ACTIVITIES.boutique, text: 'Drones, kits C5 et accessoires' },
+      { activity: ACTIVITIES.location, text: 'Drones, caméras, son et lumière' },
+    ],
+  },
+  {
+    photo: formations,
+    focus: '50% 72%',
+    links: [{ activity: ACTIVITIES.formations, text: 'Pilotage de drone et métiers de l’image' }],
+  },
+];
+
+// Black disappears on the photos: the shop's square turns white there.
+const squareColor = (a: Activity) => (a.id === 'boutique' ? 'var(--color-paper)' : a.color);
 ---
 
-<section aria-labelledby="hero-title">
-  <div class="wrap grid gap-8 pt-10 pb-10 md:pt-14 lg:grid-cols-12 lg:gap-10 lg:pt-14 lg:pb-12">
-    <h1 id="hero-title" class="display text-[clamp(2.3rem,4.7vw,4.25rem)] lg:col-span-8">
-      {HERO.title}
-    </h1>
+<section class="hero" aria-labelledby="hero-title">
+  <ul class="activities" aria-label="Nos activités">
+    {
+      panels.map((panel, i) => (
+        <li class="panel" style={{ '--i': i }}>
+          <Image
+            src={panel.photo}
+            alt=""
+            widths={[480, 720, 946]}
+            sizes="(min-width: 1024px) 40vw, 100vw"
+            loading="eager"
+            fetchpriority={i === 0 ? 'high' : 'auto'}
+            class="photo"
+            style={{ objectPosition: panel.focus }}
+          />
+          <div class="links" data-count={panel.links.length}>
+            {panel.links.map(({ activity, text }) => (
+              <a href={activity.href} class="link">
+                <span class="label">
+                  <Square color={squareColor(activity)} class="size-[0.36em]" />
+                  {activity.label}
+                </span>
+                <span class="rule" aria-hidden="true" />
+                <span class="text">{text}</span>
+              </a>
+            ))}
+          </div>
+        </li>
+      ))
+    }
+  </ul>
 
-    <div class="flex flex-col gap-7 lg:col-span-4 lg:self-end">
-      <p class="max-w-[42ch] text-lg leading-relaxed text-ink-soft">{HERO.intro}</p>
-      <div class="flex flex-wrap gap-3">
-        <Button href={SITE.contactPath}>Demander un devis</Button>
-        <Button href={SITE.phoneHref} variant="outline">{SITE.phone}</Button>
-      </div>
-      <dl class="flex gap-10 border-t border-line pt-5">
-        {
-          FACTS.map((fact) => (
-            <div class="flex flex-col-reverse">
-              <dt class="text-sm text-muted">{fact.label}</dt>
-              <dd class="text-2xl font-bold [font-stretch:125%]">{fact.value}</dd>
-            </div>
-          ))
-        }
-      </dl>
-    </div>
+  <div class="recede" aria-hidden="true"></div>
+
+  <div class="caption">
+    <h1 id="hero-title" class="text-[15px] font-medium tracking-wide text-white/85">{HERO.title}</h1>
+    <span class="cue" aria-hidden="true"></span>
   </div>
-
-  <Activities />
 </section>
+
+<style>
+  .hero {
+    position: sticky;
+    top: 0;
+    height: 100svh;
+    min-height: 560px;
+    overflow: hidden;
+    background: var(--color-ink);
+  }
+
+  .activities {
+    display: flex;
+    gap: 2px;
+    height: 100%;
+    transform-origin: 50% 0;
+  }
+  .panel {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    background: var(--color-ink);
+    transition: flex-grow 700ms var(--ease-out-strong);
+  }
+  .photo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: grayscale(1) contrast(1.05);
+    transition:
+      filter 700ms var(--ease-out-strong),
+      transform 1000ms var(--ease-out-strong);
+  }
+  /* Even veil so the centred labels read on any photo; it lifts when the panel is chosen. */
+  .panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(rgb(0 0 0 / 0.5), rgb(0 0 0 / 0.25) 45%, rgb(0 0 0 / 0.35));
+    transition: opacity 700ms var(--ease-out-strong);
+    pointer-events: none;
+  }
+
+  .links {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    height: 100%;
+  }
+  .links[data-count='2'] {
+    grid-template-columns: 1fr 1fr;
+  }
+  /* The gold divider between Boutique and Location, as on the brand's original hero. */
+  .links[data-count='2']::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 1px;
+    height: 96px;
+    translate: 0 -50%;
+    background: var(--color-gold);
+  }
+  .link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 24px;
+    color: #fff;
+    text-align: center;
+  }
+  .link:focus-visible {
+    outline-offset: -8px;
+    outline-color: #fff;
+  }
+  .label {
+    display: flex;
+    align-items: center;
+    gap: 0.35em;
+    font-size: clamp(1.9rem, 3.2vw, 3.1rem);
+    font-weight: 700;
+    font-stretch: 118%;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .links[data-count='2'] .label {
+    font-size: clamp(1.4rem, 1.9vw, 1.9rem);
+    font-stretch: 108%;
+  }
+  .rule {
+    width: 48px;
+    height: 2px;
+    background: var(--color-gold);
+    transform-origin: 50% 50%;
+    transition: transform 500ms var(--ease-out-strong);
+  }
+  .text {
+    max-width: 24ch;
+    font-size: 15px;
+    line-height: 1.4;
+    color: rgb(255 255 255 / 0.85);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .panel:hover {
+      flex-grow: 1.45;
+    }
+    .panel:hover .photo {
+      filter: grayscale(0) contrast(1);
+      transform: scale(1.04);
+    }
+    .panel:hover::before {
+      opacity: 0.55;
+    }
+    .link:hover .rule {
+      transform: scaleX(2);
+    }
+  }
+  .panel:focus-within .photo {
+    filter: grayscale(0) contrast(1);
+  }
+  .link:focus-visible .rule {
+    transform: scaleX(2);
+  }
+
+  /* Darkens as the page slides over the hero. */
+  .recede {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    background: #000;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .caption {
+    position: absolute;
+    inset: auto 0 0;
+    z-index: 4;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 0 16px 20px;
+    text-align: center;
+    pointer-events: none;
+  }
+  .cue {
+    width: 1px;
+    height: 40px;
+    background: linear-gradient(var(--color-gold), var(--color-gold)) no-repeat 0 0 / 100% 40%;
+    background-color: rgb(255 255 255 / 0.25);
+  }
+
+  @media (max-width: 1023px) {
+    .activities {
+      flex-direction: column;
+    }
+    .panel:first-child .links {
+      padding-top: 56px;
+    }
+    /* Leaves room for the caption (h1) at the bottom of the screen. */
+    .panel:last-child .links {
+      padding-bottom: 40px;
+    }
+    .links[data-count='2']::after {
+      height: 56px;
+    }
+    .label {
+      font-size: clamp(1.6rem, 6vw, 2.4rem);
+    }
+    .links[data-count='2'] .label {
+      font-size: clamp(1.25rem, 4.6vw, 1.8rem);
+    }
+    .rule {
+      display: none;
+    }
+    .link {
+      gap: 8px;
+    }
+    .caption {
+      padding-bottom: 12px;
+    }
+    .cue {
+      display: none;
+    }
+  }
+  @media (max-width: 1023px) and (max-height: 700px) {
+    .text {
+      display: none;
+    }
+  }
+
+  /* --- Opening sequence: photos rise in, one after the other, then the words. --- */
+  @media (prefers-reduced-motion: no-preference) {
+    .panel {
+      animation: panel-in 1000ms var(--ease-out-strong) backwards;
+      animation-delay: calc(var(--i) * 110ms);
+    }
+    .photo {
+      animation: photo-in 1500ms var(--ease-out-strong) backwards;
+      animation-delay: calc(var(--i) * 110ms);
+    }
+    .link > * {
+      animation: words-in 800ms var(--ease-out-strong) backwards;
+      animation-delay: calc(450ms + var(--i) * 110ms);
+    }
+    .link > .rule {
+      animation-delay: calc(550ms + var(--i) * 110ms);
+    }
+    .link > .text {
+      animation-delay: calc(620ms + var(--i) * 110ms);
+    }
+    .caption {
+      animation: words-in 800ms var(--ease-out-strong) 900ms backwards;
+    }
+    .cue {
+      animation: cue 2.4s var(--ease-out-strong) 1.6s infinite;
+    }
+  }
+  @keyframes panel-in {
+    from {
+      clip-path: inset(100% 0 0 0);
+    }
+    to {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+  @keyframes photo-in {
+    from {
+      transform: scale(1.18);
+    }
+  }
+  @keyframes words-in {
+    from {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+  }
+  @keyframes cue {
+    from {
+      background-position: 0 -40px;
+    }
+    to {
+      background-position: 0 40px;
+    }
+  }
+
+  /* --- Curtain: the hero sinks back while the page covers it. --- */
+  @supports (animation-timeline: scroll()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .activities {
+        animation-name: sink;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: scroll(root);
+        animation-range: 0 100svh;
+      }
+    }
+    .recede {
+      animation-name: darken;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      animation-timeline: scroll(root);
+      animation-range: 0 100svh;
+    }
+  }
+  @keyframes sink {
+    to {
+      transform: scale(0.9) translateY(4%);
+    }
+  }
+  @keyframes darken {
+    to {
+      opacity: 0.75;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .panel,
+    .photo,
+    .rule,
+    .panel::before {
+      transition: none;
+    }
+    .panel:hover .photo {
+      transform: none;
+    }
+  }
+</style>

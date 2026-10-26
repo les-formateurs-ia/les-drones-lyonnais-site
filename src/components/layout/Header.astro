@@ -1,15 +1,26 @@
 ---
 import { Image } from 'astro:assets';
-import logo from '../../assets/brand/logo-noir.png';
+import logoDark from '../../assets/brand/logo-noir.png';
+import logoLight from '../../assets/brand/logo-blanc-or.png';
 import Square from '../ui/Square.astro';
 import Button from '../ui/Button.astro';
 import { NAV, SITE } from '../../data/site';
+
+interface Props {
+  /** Transparent over a full-screen hero, turning solid once the hero is scrolled past. */
+  overlay?: boolean;
+}
+const { overlay = false } = Astro.props;
+
+// The shop's square is black: it follows the text colour so it shows on photos too.
+const squareColor = (id: string, color: string) => (id === 'boutique' ? 'currentColor' : color);
 ---
 
-<header class="relative z-20 border-b border-line bg-paper">
-  <div class="wrap flex h-[72px] items-center justify-between gap-6">
-    <a href="/" class="shrink-0" aria-label={`${SITE.name}, accueil`}>
-      <Image src={logo} alt="" height={36} densities={[1, 2]} loading="eager" class="h-9 w-auto" />
+<header class="site-header" data-overlay={overlay || undefined}>
+  <div class="header-inner wrap flex h-[72px] items-center justify-between gap-6">
+    <a href="/" class="logo relative block h-9 shrink-0" aria-label={`${SITE.name}, accueil`}>
+      <Image src={logoDark} alt="" height={36} densities={[1, 2]} loading="eager" class="logo-dark h-9 w-auto" />
+      {overlay && <Image src={logoLight} alt="" height={36} densities={[1, 2]} loading="eager" class="logo-light absolute inset-0 h-9 w-auto" />}
     </a>
 
     <nav aria-label="Navigation principale" class="hidden md:block">
@@ -18,7 +29,7 @@ import { NAV, SITE } from '../../data/site';
           NAV.map((item) => (
             <li>
               <a href={item.href} class="nav-link flex items-center gap-2 py-2 text-[15px] font-medium">
-                <Square color={item.color} />
+                <Square color={squareColor(item.id, item.color)} />
                 {item.label}
               </a>
             </li>
@@ -28,8 +39,8 @@ import { NAV, SITE } from '../../data/site';
     </nav>
 
     <div class="hidden items-center gap-5 md:flex">
-      <a href={SITE.phoneHref} class="hidden text-[15px] font-medium tabular-nums lg:inline hover-fine:text-gold-deep">{SITE.phone}</a>
-      <Button href={SITE.contactPath} size="sm">Demander un devis</Button>
+      <a href={SITE.phoneHref} class="phone hidden text-[15px] font-medium tabular-nums lg:inline">{SITE.phone}</a>
+      <Button href={SITE.contactPath} variant="gold" size="sm">Demander un devis</Button>
     </div>
 
     <!-- Mobile menu: a native disclosure, no script needed. -->
@@ -37,7 +48,7 @@ import { NAV, SITE } from '../../data/site';
       <summary class="flex size-11 cursor-pointer items-center justify-center" aria-label="Menu">
         <span class="burger" aria-hidden="true"></span>
       </summary>
-      <div class="menu-panel absolute inset-x-0 top-full border-b border-line bg-paper">
+      <div class="menu-panel absolute inset-x-0 top-full border-b border-line bg-paper text-ink">
         <ul class="wrap py-2">
           {
             NAV.map((item) => (
@@ -60,6 +71,83 @@ import { NAV, SITE } from '../../data/site';
 </header>
 
 <style>
+  .site-header {
+    position: relative;
+    z-index: 30;
+    background: var(--color-paper);
+    color: var(--color-ink);
+    border-bottom: 1px solid var(--color-line);
+  }
+
+  /* Over the hero: transparent, white text, gold-and-white logo. */
+  .site-header[data-overlay] {
+    position: absolute;
+    inset: 0 0 auto;
+    background: rgb(255 255 255 / 0);
+    color: #fff;
+    border-bottom-color: rgb(255 255 255 / 0);
+  }
+  .site-header[data-overlay] .logo-dark {
+    opacity: 0;
+  }
+
+  /* Where scroll-driven animations exist, the header stays on screen and turns solid
+     just as the content covers the hero. Elsewhere it simply scrolls away with the hero. */
+  @supports (animation-timeline: scroll()) {
+    .site-header[data-overlay] {
+      position: fixed;
+      animation-name: header-solid;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      animation-timeline: scroll(root);
+      animation-range: calc(100svh - 160px) calc(100svh - 72px);
+    }
+    .site-header[data-overlay] .logo-dark {
+      animation-name: fade-in;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      animation-timeline: scroll(root);
+      animation-range: calc(100svh - 160px) calc(100svh - 72px);
+    }
+    .site-header[data-overlay] .logo-light {
+      animation-name: fade-out;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      animation-timeline: scroll(root);
+      animation-range: calc(100svh - 160px) calc(100svh - 72px);
+    }
+  }
+  @keyframes header-solid {
+    to {
+      background: var(--color-paper);
+      color: var(--color-ink);
+      border-bottom-color: var(--color-line);
+    }
+  }
+  @keyframes fade-in {
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes fade-out {
+    to {
+      opacity: 0;
+    }
+  }
+
+  /* Arrives with the hero's opening, after the photos. */
+  @media (prefers-reduced-motion: no-preference) {
+    .site-header[data-overlay] .header-inner {
+      animation: header-in 700ms var(--ease-out-strong) 650ms both;
+    }
+  }
+  @keyframes header-in {
+    from {
+      opacity: 0;
+      transform: translateY(-12px);
+    }
+  }
+
   .nav-link {
     background: linear-gradient(var(--color-gold), var(--color-gold)) no-repeat left bottom / 0 1px;
     transition: background-size 200ms var(--ease-out-strong);
@@ -67,6 +155,9 @@ import { NAV, SITE } from '../../data/site';
   @media (hover: hover) and (pointer: fine) {
     .nav-link:hover {
       background-size: 100% 1px;
+    }
+    .phone:hover {
+      color: var(--color-gold);
     }
   }
 
@@ -83,7 +174,9 @@ import { NAV, SITE } from '../../data/site';
     width: 22px;
     height: 2px;
     background: currentColor;
-    transition: transform 200ms var(--ease-out-strong), opacity 150ms ease-out;
+    transition:
+      transform 200ms var(--ease-out-strong),
+      opacity 150ms ease-out;
   }
   .burger {
     position: relative;

@@ -52,6 +52,18 @@ src/
   styles/          global.css (design tokens)
 public/            fonts, favicon, robots.txt
 
+## Homepage motion (client request: a "wow" effect)
+
+- First screen = only the triptych (Prestations | Boutique + Location | Formations),
+  full screen, client request. The h1 is the small caption at its bottom.
+- One opening sequence on load; the rest of the page slides over the hero (curtain).
+- Reveals fire once (`data-reveal` + `src/lib/reveal.ts`, the only client script).
+- Scroll-linked effects are native CSS scroll-driven animations inside
+  `@supports (animation-timeline: …)`, always written with longhands
+  (`animation-name`, `animation-timeline`…): the minifier folds a timeline into the
+  `animation` shorthand, which browsers reject.
+- Everything has a still version under `prefers-reduced-motion: reduce`.
+
 ## Working method
 
 Inspect before changing. Small focused components. Reuse `data/site.ts`.

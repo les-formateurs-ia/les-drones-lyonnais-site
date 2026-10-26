@@ -1,22 +1,71 @@
 ---
+// Closing band: the four activities drift past in very large type, each with its
+// LDL square, then the way to get in touch.
 import Button from '../ui/Button.astro';
-import { SITE } from '../../data/site';
+import Square from '../ui/Square.astro';
+import { NAV, SITE } from '../../data/site';
+
+// Black disappears on black: the shop's square turns white here.
+const squareColor = (id: string, color: string) => (id === 'boutique' ? 'var(--color-paper)' : color);
 ---
 
-<section aria-labelledby="cta-title" class="bg-ink text-white">
+<section aria-labelledby="cta-title" class="expand-in overflow-hidden bg-ink text-white">
+  <div class="ticker border-b border-white/10 py-8 md:py-12" aria-hidden="true">
+    {
+      [0, 1].map(() => (
+        <div class="ticker-track">
+          {NAV.map((item) => (
+            <span class="flex items-center gap-[0.35em] pr-[0.6em]">
+              <Square color={squareColor(item.id, item.color)} class="size-[0.3em]" />
+              {item.label}
+            </span>
+          ))}
+        </div>
+      ))
+    }
+  </div>
+
   <div class="wrap grid gap-10 py-16 md:py-24 lg:grid-cols-12 lg:items-end">
-    <div class="lg:col-span-7">
-      <h2 id="cta-title" class="display text-[clamp(2rem,4.6vw,3.8rem)]">Un projet de tournage, d’inspection ou de formation ?</h2>
-      <p class="mt-6 max-w-[48ch] text-lg leading-relaxed text-white/75">
+    <div class="lg:col-span-7" data-reveal>
+      <h2 id="cta-title" class="display text-[clamp(2.2rem,4.6vw,3.8rem)]">Un projet de tournage, d’inspection ou de formation ?</h2>
+      <p class="mt-6 max-w-[48ch] text-lg leading-relaxed text-white/70">
         Décrivez-nous votre besoin : nous revenons vers vous avec une proposition et un devis détaillé.
       </p>
     </div>
-    <div class="flex flex-col gap-6 lg:col-span-5 lg:items-end">
+    <div class="flex flex-col gap-6 lg:col-span-5 lg:items-end" data-reveal style={{ '--i': 2 }}>
       <div class="flex flex-wrap gap-3">
         <Button href={SITE.contactPath} variant="gold">Demander un devis</Button>
         <Button href={SITE.phoneHref} variant="outline-light">{SITE.phone}</Button>
       </div>
-      <a href={`mailto:${SITE.email}`} class="text-white/75 underline decoration-white/30 underline-offset-4 hover-fine:text-white hover-fine:decoration-gold">{SITE.email}</a>
+      <a href={`mailto:${SITE.email}`} class="text-white/70 underline decoration-white/30 underline-offset-4 hover-fine:text-white hover-fine:decoration-gold">{SITE.email}</a>
     </div>
   </div>
 </section>
+
+<style>
+  .ticker {
+    display: flex;
+    overflow: hidden;
+    font-size: clamp(3rem, 9vw, 8.5rem);
+    font-weight: 700;
+    font-stretch: 125%;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .ticker-track {
+    display: flex;
+    flex-shrink: 0;
+    animation: ticker 40s linear infinite;
+  }
+  @keyframes ticker {
+    to {
+      transform: translateX(-100%);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ticker-track {
+      animation: none;
+    }
+  }
+</style>
