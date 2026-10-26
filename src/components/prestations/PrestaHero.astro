@@ -5,9 +5,12 @@
 // white. Drag, arrow keys, the buttons or a click move through the deck; the deck
 // browses on its own until the visitor takes over. Switching family sends the cards
 // away one by one and deals the other deck from the centre. The blurred backdrop
-// follows the card in focus; Dylan stands in front, as on the current page.
+// follows the card in focus. A team member stands in front, as on the current page:
+// Dylan for the technical services, Théo for the artistic ones.
+// Everything fits in one screen; the rest of the page follows on scroll.
 import { Image } from 'astro:assets';
 import dylan from '../../assets/team/dylan-pied.webp';
+import theo from '../../assets/team/theo-pied.webp';
 import Square from '../ui/Square.astro';
 import { servicePhoto } from '../../lib/service-photo';
 import { FAMILIES, PROMISES, SENSOR_LABEL, servicesOf, type ServiceFamily } from '../../data/services';
@@ -39,12 +42,12 @@ const first = decks[0].cards[0];
       <span aria-current="page">Prestations</span>
     </nav>
     <div class="headline">
-      <h1 id="presta-title" class="display flex items-start gap-4 text-[clamp(2.2rem,4.4vw,4rem)]">
+      <h1 id="presta-title" class="display flex items-start gap-4 text-[clamp(1.9rem,3.3vw,3.1rem)]">
         <Square color={ACTIVITIES.prestations.color} class="mt-[0.2em] size-[0.3em] shrink-0" />
         Prestations drone et audiovisuelles
       </h1>
       <div class="lead">
-        <p class="text-lg leading-relaxed text-white/80">L’art de capturer l’essentiel, à Lyon et partout en France.</p>
+        <p class="leading-relaxed text-white/80">L’art de capturer l’essentiel, à Lyon et partout en France.</p>
         <div class="toggle" role="group" aria-label="Famille de prestations">
           <span class="toggle-thumb" aria-hidden="true"></span>
           {
@@ -106,7 +109,8 @@ const first = decks[0].cards[0];
       ))
     }
 
-    <Image src={dylan} alt="Dylan, fondateur des Drones Lyonnais, bras croisés" widths={[300, 450, 600]} sizes="(min-width: 1024px) 22vw, 0px" class="dylan" loading="eager" />
+    <Image src={dylan} alt="Dylan, fondateur des Drones Lyonnais" widths={[300, 450, 600]} sizes="(min-width: 1024px) 22vw, 0px" class="guide" data-guide="technique" loading="eager" />
+    <Image src={theo} alt="Théo, responsable audiovisuel et formation" widths={[300, 450, 600]} sizes="(min-width: 1024px) 22vw, 0px" class="guide" data-guide="artistique" loading="eager" />
 
     <div class="controls">
       <button type="button" class="nav-btn" data-step="-1" aria-label="Prestation précédente">
@@ -137,11 +141,14 @@ const first = decks[0].cards[0];
 
 <style>
   .presta-hero {
-    --card-w: clamp(210px, 21vw, 300px);
+    /* Card size follows the screen height too, so the whole hero fits in one view:
+       ~330px of header, title, toggle, controls and promises around the deck. */
+    --card-w: clamp(170px, min(20vw, calc((100svh - 330px) * 0.72)), 300px);
     position: relative;
     display: flex;
     flex-direction: column;
-    min-height: max(100svh, 780px);
+    height: 100svh;
+    min-height: 600px;
     overflow: hidden;
     background: #000;
     color: #fff;
@@ -184,7 +191,7 @@ const first = decks[0].cards[0];
   .top {
     position: relative;
     z-index: 3;
-    padding-top: 112px;
+    padding-top: 92px;
   }
   .crumbs {
     display: flex;
@@ -196,13 +203,13 @@ const first = decks[0].cards[0];
     grid-template-columns: 7fr 5fr;
     align-items: end;
     gap: 32px;
-    margin-top: 18px;
+    margin-top: 10px;
   }
   .lead {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 16px;
+    gap: 10px;
   }
 
   /* Segmented toggle with a sliding thumb. */
@@ -219,8 +226,8 @@ const first = decks[0].cards[0];
   .toggle button {
     position: relative;
     z-index: 1;
-    min-height: 46px;
-    padding: 0 26px;
+    min-height: 42px;
+    padding: 0 24px;
     font-size: 16px;
     font-weight: 700;
     font-stretch: 112%;
@@ -267,7 +274,7 @@ const first = decks[0].cards[0];
     position: relative;
     z-index: 2;
     flex: 1;
-    min-height: calc(var(--card-w) * 1.25 + 120px);
+    min-height: calc(var(--card-w) * 1.25 + 80px);
   }
   .deck {
     position: absolute;
@@ -292,7 +299,7 @@ const first = decks[0].cards[0];
   .card {
     --shift: 0;
     position: absolute;
-    top: 46%;
+    top: calc(50% - 22px);
     left: 55%;
     width: var(--card-w);
     aspect-ratio: 4 / 5;
@@ -428,12 +435,12 @@ const first = decks[0].cards[0];
     }
   }
 
-  .dylan {
+  .guide {
     position: absolute;
-    left: clamp(8px, 4vw, 64px);
+    left: clamp(8px, 3vw, 48px);
     bottom: 0;
     z-index: 150;
-    /* Fits the deck's stage, so he never reaches the title above. */
+    /* Fits the deck's stage, so the guide never reaches the title above. */
     height: calc(100% - 8px);
     max-width: min(22vw, 300px);
     width: auto;
@@ -442,12 +449,21 @@ const first = decks[0].cards[0];
     pointer-events: none;
     mask-image: linear-gradient(#000 72%, transparent 99%);
     filter: drop-shadow(0 20px 40px rgb(0 0 0 / 0.5));
+    transition:
+      opacity 450ms ease,
+      translate 700ms var(--ease-out-strong);
   }
-
+  /* Changing family hands over from one guide to the other: one slips down and out,
+     the other rises in. */
+  .presta-hero[data-family='technique'] [data-guide='artistique'],
+  .presta-hero[data-family='artistique'] [data-guide='technique'] {
+    opacity: 0;
+    translate: 0 14%;
+  }
   .controls {
     position: absolute;
     left: 55%;
-    bottom: 18px;
+    bottom: 8px;
     z-index: 160;
     display: flex;
     align-items: center;
@@ -510,8 +526,9 @@ const first = decks[0].cards[0];
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 24px;
-    padding-block: 20px 36px;
+    padding-block: 14px 30px;
     border-top: 1px solid rgb(255 255 255 / 0.15);
+    font-size: 14px;
   }
   .promises li {
     display: flex;
@@ -521,13 +538,29 @@ const first = decks[0].cards[0];
 
   @media (max-width: 1023px) {
     .presta-hero {
-      --card-w: min(62vw, 280px);
+      --card-w: clamp(150px, min(68vw, calc((100svh - 380px) * 0.8)), 300px);
+      /* Small screens: the hero (title, toggle, deck) fills the first screen; the
+         promises follow just below. */
+      height: auto;
+      min-height: 0;
+    }
+    .stage {
+      flex: none;
+      height: calc(100svh - 300px);
+      min-height: calc(var(--card-w) * 1.25 + 80px);
+    }
+    .top {
+      padding-top: 80px;
     }
     .headline {
       grid-template-columns: 1fr;
-      gap: 18px;
+      gap: 12px;
     }
-    .dylan {
+    .lead > p:first-child,
+    .frame {
+      display: none;
+    }
+    .guide {
       display: none;
     }
     .card,
@@ -559,7 +592,7 @@ const first = decks[0].cards[0];
       animation: card-in 1000ms var(--ease-out-strong) backwards;
       animation-delay: calc(250ms + var(--ad) * 70ms);
     }
-    .dylan {
+    .presta-hero[data-family='technique'] [data-guide='technique'] {
       animation: rise 1000ms var(--ease-out-strong) 400ms backwards;
     }
   }
@@ -580,6 +613,7 @@ const first = decks[0].cards[0];
       animation: none;
     }
     .amb,
+    .guide,
     .toggle-thumb,
     .tagline span {
       transition: none;
