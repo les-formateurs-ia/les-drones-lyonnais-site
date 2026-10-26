@@ -60,9 +60,15 @@ public/            fonts, favicon, robots.txt
   interaction. Feeds are photos from the current site until the client provides short
   aerial videos (one per activity, muted loop, ≤ 3 MB each).
   The h1 is the small caption above the modes.
-- One boot-up sequence on load; the rest of the page slides over the hero (curtain).
-- Team portraits are traced from the photos in src/assets/team at build time
-  (lib/trace-portrait.ts, brand palette) and print in layer by layer.
+- One boot-up sequence on load; on scroll the camera dives in and fades to the black
+  of the manifesto, so the page continues the hero without an edge.
+- Services: "same drone, different sensors" — a pinned control screen shows each
+  service through its camera mode (SVG filters: thermal, survey; overlays for mesh,
+  detection, cinema, live, grading). Photos from the current site, in src/assets/services.
+- Team: illustrated SVG avatars (components/ui/Avatar.astro), drawn for the brand,
+  not traced; pinned "crew" stage on large screens, stacked cards on small ones.
+- Coverage: pinned map of France (src/data/france-map.ts, IGN Admin Express, Licence
+  ouverte — keep the credit) zooming to Lyon on scroll; "Toute la France" overrides.
 - Reveals fire once (`data-reveal` + `src/lib/reveal.ts`, the only client script).
 - Scroll-linked effects are native CSS scroll-driven animations inside
   `@supports (animation-timeline: …)`, always written with longhands

@@ -19,8 +19,7 @@ const squareColor = (id: string, color: string) => (id === 'boutique' ? 'current
 <header class="site-header" data-overlay={overlay || undefined}>
   <div class="header-inner wrap flex h-[72px] items-center justify-between gap-6">
     <a href="/" class="logo relative block h-9 shrink-0" aria-label={`${SITE.name}, accueil`}>
-      <Image src={logoDark} alt="" height={36} densities={[1, 2]} loading="eager" class="logo-dark h-9 w-auto" />
-      {overlay && <Image src={logoLight} alt="" height={36} densities={[1, 2]} loading="eager" class="logo-light absolute inset-0 h-9 w-auto" />}
+      <Image src={overlay ? logoLight : logoDark} alt="" height={36} densities={[1, 2]} loading="eager" class="h-9 w-auto" />
     </a>
 
     <nav aria-label="Navigation principale" class="hidden md:block">
@@ -87,12 +86,9 @@ const squareColor = (id: string, color: string) => (id === 'boutique' ? 'current
     color: #fff;
     border-bottom-color: rgb(255 255 255 / 0);
   }
-  .site-header[data-overlay] .logo-dark {
-    opacity: 0;
-  }
 
-  /* Where scroll-driven animations exist, the header stays on screen and turns solid
-     just as the content covers the hero. Elsewhere it simply scrolls away with the hero. */
+  /* Where scroll-driven animations exist, the header stays on screen and turns into a
+     dark bar as the hero hands over to the page. Elsewhere it scrolls away with the hero. */
   @supports (animation-timeline: scroll()) {
     .site-header[data-overlay] {
       position: fixed;
@@ -100,38 +96,14 @@ const squareColor = (id: string, color: string) => (id === 'boutique' ? 'current
       animation-timing-function: linear;
       animation-fill-mode: both;
       animation-timeline: scroll(root);
-      animation-range: calc(100svh - 160px) calc(100svh - 72px);
-    }
-    .site-header[data-overlay] .logo-dark {
-      animation-name: fade-in;
-      animation-timing-function: linear;
-      animation-fill-mode: both;
-      animation-timeline: scroll(root);
-      animation-range: calc(100svh - 160px) calc(100svh - 72px);
-    }
-    .site-header[data-overlay] .logo-light {
-      animation-name: fade-out;
-      animation-timing-function: linear;
-      animation-fill-mode: both;
-      animation-timeline: scroll(root);
-      animation-range: calc(100svh - 160px) calc(100svh - 72px);
+      animation-range: calc(60svh) calc(100svh - 72px);
     }
   }
   @keyframes header-solid {
     to {
-      background: var(--color-paper);
-      color: var(--color-ink);
-      border-bottom-color: var(--color-line);
-    }
-  }
-  @keyframes fade-in {
-    to {
-      opacity: 1;
-    }
-  }
-  @keyframes fade-out {
-    to {
-      opacity: 0;
+      background: rgb(0 0 0 / 0.78);
+      border-bottom-color: rgb(255 255 255 / 0.08);
+      backdrop-filter: blur(14px) saturate(1.4);
     }
   }
 

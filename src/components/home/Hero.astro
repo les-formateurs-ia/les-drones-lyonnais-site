@@ -172,7 +172,7 @@ const tapeOffset = (heading: number) => COMPASS / 2 - ((8 + heading / 45) * TICK
   .feeds {
     position: absolute;
     inset: 0;
-    transform-origin: 50% 0;
+    transform-origin: 50% 46%;
   }
   .feed {
     position: absolute;
@@ -657,11 +657,14 @@ const tapeOffset = (heading: number) => COMPASS / 2 - ((8 + heading / 45) * TICK
     }
   }
 
-  /* ---------- Curtain: the screen sinks back while the page covers it ---------- */
+  /* ---------- Hand-over: the camera dives in while the display switches off ----------
+     Over the first screen of scrolling, the flight display and the modes fade out, the
+     feed pushes in, and the picture fades to the black of the next section, which then
+     simply continues it: no edge between the hero and the page. */
   @supports (animation-timeline: scroll()) {
     @media (prefers-reduced-motion: no-preference) {
       .feeds {
-        animation-name: signal, sink;
+        animation-name: signal, dive;
         animation-duration: 1300ms, auto;
         animation-timing-function: var(--ease-out-strong), linear;
         animation-delay: 250ms, 0s;
@@ -669,23 +672,38 @@ const tapeOffset = (heading: number) => COMPASS / 2 - ((8 + heading / 45) * TICK
         animation-timeline: auto, scroll(root);
         animation-range: normal, 0 100svh;
       }
+      .hud,
+      .selector {
+        animation-name: switch-off;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: scroll(root);
+        animation-range: 0 35svh;
+      }
     }
     .recede {
       animation-name: darken;
       animation-timing-function: linear;
       animation-fill-mode: both;
       animation-timeline: scroll(root);
-      animation-range: 0 100svh;
+      animation-range: 15svh 85svh;
     }
   }
-  @keyframes sink {
+  @keyframes dive {
     to {
-      transform: scale(0.92);
+      transform: scale(1.35);
+      filter: blur(6px);
+    }
+  }
+  @keyframes switch-off {
+    to {
+      opacity: 0;
+      transform: translateY(-16px);
     }
   }
   @keyframes darken {
     to {
-      opacity: 0.8;
+      opacity: 1;
     }
   }
 
