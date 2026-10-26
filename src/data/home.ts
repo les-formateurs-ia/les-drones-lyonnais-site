@@ -53,6 +53,8 @@ export interface Member {
   /** Name of the looping portrait video in public/team/ (<video>.webm + .mp4, made by
    *  `npm run videos`). Until the files exist, the photo shows. */
   video: string;
+  /** Radius of the round cut-out in the photo and video (fraction of their size). */
+  cutRadius: number;
 }
 
 export const TEAM: Member[] = [
@@ -63,6 +65,7 @@ export const TEAM: Member[] = [
     skills: ['Direction de projet', 'Pilotage drone', 'Photogrammétrie 3D', 'Thermographie', 'Audiovisuel'],
     photo: dylan,
     video: 'dylan',
+    cutRadius: 0.438,
   },
   {
     name: 'Théo',
@@ -71,6 +74,7 @@ export const TEAM: Member[] = [
     skills: ['Réalisation', 'Cadrage', 'Drone cinéma', 'FPV', 'Montage vidéo'],
     photo: theo,
     video: 'theo',
+    cutRadius: 0.408,
   },
   {
     name: 'Margot',
@@ -79,6 +83,7 @@ export const TEAM: Member[] = [
     skills: ['Relation client', 'Organisation des projets', 'Suivi administratif', 'Réseaux sociaux'],
     photo: margot,
     video: 'margot',
+    cutRadius: 0.438,
   },
   {
     name: 'Pop',
@@ -87,6 +92,7 @@ export const TEAM: Member[] = [
     skills: ['Accueil des visiteurs', 'Moral des troupes', 'Expert officiel en câlins'],
     photo: pop,
     video: 'pop',
+    cutRadius: 0.438,
   },
 ];
 

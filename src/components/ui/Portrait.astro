@@ -14,9 +14,14 @@ interface Props {
   alt: string;
   /** Video name in public/team/ (without extension). */
   video?: string;
+  /** Radius of the round cut-out inside the picture, as a fraction of its size: the
+   *  picture is scaled so that this circle lands exactly on the disc's edge. */
+  cutRadius?: number;
   class?: string;
 }
-const { photo, alt, video, class: className } = Astro.props;
+const { photo, alt, video, cutRadius = 0.5, class: className } = Astro.props;
+// A hair more than the exact fit, so the cut-out's soft edge hides under the disc's.
+const fit = (0.5 / cutRadius) * 1.015;
 
 // Only reference videos that were actually encoded, so no request ever 404s.
 const has = (ext: string) => !!video && existsSync(path.join(process.cwd(), 'public/team', `${video}.${ext}`));
@@ -26,7 +31,7 @@ const sources = [
 ].filter(Boolean) as { src: string; type: string }[];
 ---
 
-<div class:list={['portrait viewfinder', className]} style={{ '--vf': 'var(--color-ink)', '--vf-inset': '0px', '--vf-size': '18px' }}>
+<div class:list={['portrait viewfinder', className]} style={{ '--vf': 'var(--color-ink)', '--vf-inset': '0px', '--vf-size': '18px', '--fit': fit.toFixed(4) }}>
   <div class="disc">
     <Image src={photo} alt={alt} widths={[240, 400, 640]} sizes="(min-width: 1024px) 380px, 140px" class="shot" />
     {
@@ -66,7 +71,7 @@ const sources = [
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transform: translate(calc(var(--px) * 10px), calc(var(--py) * 7px)) scale(1.05);
+    transform: translate(calc(var(--px) * 10px), calc(var(--py) * 7px)) scale(var(--fit, 1.05));
     transition: transform 600ms var(--ease-out-strong);
   }
   /* The video lies over the photo and fades in once it actually plays. */
@@ -82,9 +87,12 @@ const sources = [
     opacity: 1;
   }
   @media (prefers-reduced-motion: reduce) {
-    .disc,
-    .shot {
+    .disc {
       transform: none;
+      transition: none;
+    }
+    .shot {
+      transform: scale(var(--fit, 1.05));
       transition: none;
     }
     .clip {

@@ -34,7 +34,7 @@ import { TEAM, TEAM_INTRO } from '../../data/home';
           TEAM.map((member, i) => (
             <article class="card" id={`member-${i}`} data-card={i} data-active={i === 0 || undefined} data-reveal>
               <div class="card-avatar">
-                <Portrait photo={member.photo} video={member.video} alt={`${member.name}, ${member.role.toLowerCase()}`} class="size-full" />
+                <Portrait photo={member.photo} video={member.video} cutRadius={member.cutRadius} alt={`${member.name}, ${member.role.toLowerCase()}`} class="size-full" />
               </div>
               <div class="card-text">
                 <h3 class="card-name">{member.name}</h3>
