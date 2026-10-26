@@ -1,8 +1,9 @@
 ---
-// Illustrated team avatars, drawn for the site in the brand palette (ink, gold, cream).
-// Each one keeps what makes the person recognisable — hair, beard, necklace — without
-// copying the photo. Parts are grouped so the page can animate them: the eyes blink and
-// follow the pointer (--ex/--ey), the head leans (--hx), Pop wags his tongue.
+// Illustrated team avatars, drawn for the site from the team's photos: semi-realistic
+// (face shape, skin and eye colour, hair, beard, necklace) but flat enough to stay in
+// the brand's graphic language (ink disc, gold ring). Parts are grouped so the page can
+// animate them: the eyes blink and the irises follow the pointer (--ex/--ey), the head
+// leans (--hx), Pop pants.
 export type AvatarId = 'dylan' | 'theo' | 'margot' | 'pop';
 
 interface Props {
@@ -11,144 +12,309 @@ interface Props {
 }
 const { who, class: className } = Astro.props;
 
-const SKIN = '#f2dcc4';
-const SKIN_SHADE = '#e3c3a0';
+interface Person {
+  face: string;
+  skin: [light: string, base: string, shade: string];
+  blush: number;
+  iris: string;
+  brows: { d: string; color: string; width: number };
+}
+
+const PEOPLE: Record<Exclude<AvatarId, 'pop'>, Person> = {
+  // Broad, round face; light blue eyes; fair, light brows; rosy cheeks.
+  dylan: {
+    face: 'M66 84 C66 57 81 44 100 44 C119 44 134 57 134 84 C134 104 129 121 117 131 C111 136 105 139 100 139 C95 139 89 136 83 131 C71 121 66 104 66 84 Z',
+    skin: ['#f8d9c0', '#efc1a0', '#d99c7a'],
+    blush: 0.42,
+    iris: '#7fa4c4',
+    brows: { d: 'M78 79.5 C83 77 89 76.6 94 78 M106 78 C111 76.6 117 77 122 79.5', color: '#d2a86c', width: 2.6 },
+  },
+  // Narrower, more angular face; tanned skin; hazel-green eyes; dark straight brows.
+  theo: {
+    face: 'M70 83 C70 57 84 45 100 45 C116 45 130 57 130 83 C130 101 127 114 121 124 C115 133 108 139 100 139 C92 139 85 133 79 124 C73 114 70 101 70 83 Z',
+    skin: ['#f1cba6', '#e2ad84', '#c48a62'],
+    blush: 0.2,
+    iris: '#8a9a6a',
+    brows: { d: 'M78 79 C83 76.5 89 76 95 77.5 M105 77.5 C111 76 117 76.5 122 79', color: '#4a3220', width: 3.4 },
+  },
+  // Soft oval face; fair skin; brown eyes; arched brows.
+  margot: {
+    face: 'M71 84 C71 58 84 46 100 46 C116 46 129 58 129 84 C129 106 121 127 107 135 C105 137 102.5 138 100 138 C97.5 138 95 137 93 135 C79 127 71 106 71 84 Z',
+    skin: ['#fbe3d2', '#f3cdb6', '#e0a68a'],
+    blush: 0.5,
+    iris: '#6b4a32',
+    brows: { d: 'M79 80 C83 75.5 89 74.8 94.5 77.5 M105.5 77.5 C111 74.8 117 75.5 121 80', color: '#6e4630', width: 2.6 },
+  },
+};
+
+// A lock of hair: a flame-like shape from a base (bx, by) of width w to a tip (tx, ty).
+const lock = ([bx, by, tx, ty, w]: number[]) => {
+  const h = by - ty;
+  return `M${bx - w / 2} ${by} C${bx - w / 2} ${by - h * 0.5} ${tx - w * 0.2} ${ty + h * 0.3} ${tx} ${ty} C${tx + w * 0.3} ${ty + h * 0.35} ${bx + w / 2} ${by - h * 0.45} ${bx + w / 2} ${by} Z`;
+};
+// Tousled, swept-up locks: [baseX, baseY, tipX, tipY, width]. Back row first, then front.
+const LOCKS = {
+  dylan: [
+    [66, 72, 52, 52, 24], [76, 63, 61, 42, 24], [88, 59, 79, 33, 24], [100, 57, 95, 29, 24], [112, 59, 119, 31, 24], [124, 63, 138, 42, 24], [134, 72, 150, 54, 22],
+    [72, 68, 69, 46, 18], [84, 63, 91, 39, 18], [96, 61, 87, 37, 17], [106, 61, 113, 35, 17], [118, 63, 110, 40, 17], [128, 67, 137, 48, 16],
+  ],
+  theo: [
+    [69, 72, 56, 54, 22], [79, 64, 65, 44, 22], [90, 60, 82, 35, 22], [101, 58, 97, 31, 22], [112, 60, 120, 34, 22], [123, 64, 136, 45, 22], [132, 72, 146, 56, 20],
+    [75, 68, 73, 48, 16], [86, 64, 93, 42, 16], [97, 62, 89, 40, 15], [107, 62, 114, 38, 15], [118, 64, 111, 43, 15], [127, 68, 135, 51, 14],
+  ],
+};
+const HAIR_TONES = {
+  dylan: ['#cfa557', '#e6c97c', '#f8ecc4'],
+  theo: ['#3f2a19', '#6e4b2c', '#e2bb78'],
+};
+
 const INK = '#111';
-const TEE = '#fbf8f3';
-const TEE_SHADE = '#e9e1d4';
+const TEE = '#f7f4ee';
+const TEE_SHADE = '#e4ddd0';
 const GOLD = '#af854a';
-const clip = `clip-${who}`;
+const id = (part: string) => `${who}-${part}`;
+const person = who === 'pop' ? null : PEOPLE[who];
+const EYES = [87, 113];
 ---
 
 <svg viewBox="0 0 200 200" class:list={['avatar', `avatar-${who}`, className]} aria-hidden="true" focusable="false">
   <defs>
-    <clipPath id={clip}><circle cx="100" cy="100" r="96"></circle></clipPath>
-  </defs>
-  <circle class="disc" cx="100" cy="100" r="96" fill={INK}></circle>
-  <g clip-path={`url(#${clip})`}>
-    <g transform="translate(100 118) scale(1.16) translate(-100 -118)">
+    <clipPath id={id('disc')}><circle cx="100" cy="100" r="96"></circle></clipPath>
     {
-      who === 'pop' ? (
-        <g class="body">
-          {/* Fluffy chest and harness */}
-          <path d="M34 210 C30 170 52 146 100 144 C148 146 170 170 166 210 Z" fill={TEE} />
-          <path d="M58 176 L72 168 L84 176 L100 170 L116 176 L128 168 L142 176" fill="none" stroke={TEE_SHADE} stroke-width="3" stroke-linecap="round" />
-          <path d="M62 160 C80 176 120 176 138 160 L144 176 C122 194 78 194 56 176 Z" fill={INK} />
-          <rect x="92" y="176" width="16" height="12" rx="2" fill={GOLD} />
-          <g class="head">
-            {/* Ears */}
-            <path class="ear ear-l" d="M58 72 L66 26 L92 58 Z" fill={TEE} />
-            <path class="ear ear-r" d="M142 72 L134 26 L108 58 Z" fill={TEE} />
-            <path d="M66 62 L69 38 L84 56 Z" fill={SKIN_SHADE} />
-            <path d="M134 62 L131 38 L116 56 Z" fill={SKIN_SHADE} />
-            {/* Fluffy head */}
-            <path
-              d="M100 44 C112 38 126 46 132 52 C142 50 150 62 148 72 C158 78 160 92 154 100 C162 110 156 124 146 128 C148 140 136 150 126 150 C118 160 106 160 100 156 C94 160 82 160 74 150 C64 150 52 140 54 128 C44 124 38 110 46 100 C40 92 42 78 52 72 C50 62 58 50 68 52 C74 46 88 38 100 44 Z"
-              fill={TEE}
-            />
-            <path d="M70 120 C80 140 120 140 130 120 C126 134 114 144 100 144 C86 144 74 134 70 120 Z" fill={TEE_SHADE} />
-            {/* Eyes */}
-            <g class="eyes">
-              <g class="eye"><ellipse cx="82" cy="96" rx="5" ry="5.5" fill={INK} /><circle class="glint" cx="83.6" cy="94.2" r="1.4" fill="#fff" /></g>
-              <g class="eye"><ellipse cx="118" cy="96" rx="5" ry="5.5" fill={INK} /><circle class="glint" cx="119.6" cy="94.2" r="1.4" fill="#fff" /></g>
-            </g>
-            {/* Muzzle, nose, mouth, tongue */}
-            <ellipse cx="100" cy="118" rx="20" ry="15" fill="#fff" />
-            <path d="M92 108 C92 104 108 104 108 108 C108 113 103 116 100 116 C97 116 92 113 92 108 Z" fill={INK} />
-            <path d="M100 116 L100 121 M88 120 C92 127 100 125 100 121 C100 125 108 127 112 120" fill="none" stroke={INK} stroke-width="2.4" stroke-linecap="round" />
-            <path class="tongue" d="M93 124 C93 140 107 140 107 124 Z" fill="#e8909a" />
-            <path d="M100 126 L100 134" stroke="#c96f7b" stroke-width="1.6" stroke-linecap="round" />
-          </g>
-        </g>
-      ) : (
-        <g class="body">
-          {/* Back hair (Margot's long hair sits behind the shoulders) */}
-          {who === 'margot' && <path d="M58 86 C54 52 76 34 100 34 C124 34 146 52 142 86 L148 168 C130 176 70 176 52 168 Z" fill="#8a5636" />}
-          {/* T-shirt */}
-          <path d="M28 210 C28 172 52 154 82 150 L118 150 C148 154 172 172 172 210 Z" fill={TEE} />
-          <path d="M82 150 C88 164 112 164 118 150" fill="none" stroke={TEE_SHADE} stroke-width="4" />
-          <text x="116" y="177" font-size="10" font-weight="800" font-family="Archivo, sans-serif" fill={INK} letter-spacing="0.5">LDL</text>
-          {/* Neck */}
-          <path d="M88 126 L112 126 L114 152 C106 158 94 158 86 152 Z" fill={SKIN_SHADE} />
-          {/* Necklaces */}
-          {who === 'dylan' && (
-            <g>
-              <path d="M84 152 C88 176 112 176 116 152" fill="none" stroke={INK} stroke-width="1.8" />
-              <circle cx="100" cy="170" r="2.6" fill={INK} />
-            </g>
+      person && (
+        <>
+          <radialGradient id={id('skin')} cx="44%" cy="40%" r="62%">
+            <stop offset="0" stop-color={person.skin[0]} />
+            <stop offset="0.6" stop-color={person.skin[1]} />
+            <stop offset="1" stop-color={person.skin[2]} />
+          </radialGradient>
+          {EYES.map((x, i) => (
+            <clipPath id={id(`eye${i}`)}>
+              <path d={`M${x - 8} 90 Q${x} 83 ${x + 8} 90 Q${x} 95.5 ${x - 8} 90 Z`} />
+            </clipPath>
+          ))}
+          <pattern id={id('stubble')} width="2.6" height="2.6" patternUnits="userSpaceOnUse">
+            <circle cx="0.8" cy="0.8" r="0.55" fill={who === 'theo' ? '#5a3d26' : '#b88a55'} />
+            <circle cx="2.1" cy="2" r="0.45" fill={who === 'theo' ? '#5a3d26' : '#b88a55'} />
+          </pattern>
+          {(who === 'dylan' || who === 'theo') && (
+            <linearGradient id={id('hair')} x1="0" y1="1" x2="0" y2="0" gradientUnits="objectBoundingBox">
+              <stop offset="0" stop-color={HAIR_TONES[who][0]} />
+              <stop offset="0.5" stop-color={HAIR_TONES[who][1]} />
+              <stop offset="1" stop-color={HAIR_TONES[who][2]} />
+            </linearGradient>
           )}
-          {who === 'theo' && (
-            <g>
-              <path d="M84 152 C88 178 112 178 116 152" fill="none" stroke="#c8c8c8" stroke-width="1.6" stroke-dasharray="2 1.4" />
-              <path d="M100 172 L104 178 L100 184 L96 178 Z" fill="#c8c8c8" />
-            </g>
+          {who === 'margot' && (
+            <linearGradient id={id('hair')} x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#b47a4a" />
+              <stop offset="0.55" stop-color="#94592f" />
+              <stop offset="1" stop-color="#6e3d21" />
+            </linearGradient>
           )}
-          <g class="head">
-            {/* Ears */}
-            <ellipse cx="68" cy="94" rx="6" ry="9" fill={SKIN_SHADE} />
-            <ellipse cx="132" cy="94" rx="6" ry="9" fill={SKIN_SHADE} />
-            {/* Face */}
-            <path d="M70 84 C70 58 84 46 100 46 C116 46 130 58 130 84 C130 108 120 132 100 134 C80 132 70 108 70 84 Z" fill={SKIN} />
-            {/* Beard shadow / goatee */}
-            {who === 'dylan' && <path d="M76 108 C82 128 118 128 124 108 C120 126 110 134 100 134 C90 134 80 126 76 108 Z" fill={SKIN_SHADE} opacity="0.7" />}
-            {who === 'theo' && <path d="M92 126 C94 133 106 133 108 126 C106 130 94 130 92 126 Z M96 128 L104 128 L102 134 L98 134 Z" fill="#5b3b23" />}
-            {/* Eyebrows */}
-            <path
-              d={who === 'margot' ? 'M80 80 C84 76 90 76 94 79 M106 79 C110 76 116 76 120 80' : 'M79 80 C84 76 90 76 95 78 M105 78 C110 76 116 76 121 80'}
-              fill="none"
-              stroke={who === 'dylan' ? '#c9a46a' : '#5b3b23'}
-              stroke-width="3"
-              stroke-linecap="round"
-            />
-            {/* Eyes */}
-            <g class="eyes">
-              <g class="eye"><ellipse cx="87" cy="90" rx="3.4" ry="4" fill={INK} /><circle class="glint" cx="88.2" cy="88.8" r="1" fill="#fff" /></g>
-              <g class="eye"><ellipse cx="113" cy="90" rx="3.4" ry="4" fill={INK} /><circle class="glint" cx="114.2" cy="88.8" r="1" fill="#fff" /></g>
-            </g>
-            {/* Nose */}
-            <path d="M100 92 L97 106 C99 108 102 108 104 106" fill="none" stroke={SKIN_SHADE} stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
-            {/* Smile */}
-            <path d="M86 113 C90 124 110 124 114 113 Z" fill="#fff" stroke={INK} stroke-width="2.2" stroke-linejoin="round" />
-            {who === 'margot' && (
-              <g fill="#e8b4a0" opacity="0.6">
-                <ellipse cx="80" cy="106" rx="6" ry="3.5" />
-                <ellipse cx="120" cy="106" rx="6" ry="3.5" />
-              </g>
-            )}
-            {/* Hair */}
-            {who === 'dylan' && (
-              <path
-                d="M68 90 C62 74 62 60 68 52 L60 42 L76 44 L74 28 L90 38 L96 20 L106 36 L120 24 L120 42 L138 36 L132 54 C138 64 136 78 132 90 C129 78 125 70 118 66 C104 70 86 68 76 66 C72 72 70 80 68 90 Z"
-                fill="#ecd58f"
-              />
-            )}
-            {who === 'dylan' && <path d="M76 44 L86 58 M96 22 L99 52 M120 26 L112 54 M134 40 L124 56" stroke="#d1b264" stroke-width="2" stroke-linecap="round" />}
-            {who === 'theo' && (
-              <g>
-                {/* Short textured curls, darker at the roots, sun-bleached at the tips */}
-                <path
-                  d="M68 88 C64 74 66 62 72 56 C70 48 76 42 82 42 C84 36 92 32 98 36 C102 30 112 30 116 36 C122 34 130 40 130 46 C136 50 138 58 134 64 C136 72 134 80 132 88 C130 78 126 72 120 68 C106 64 92 64 80 68 C74 72 70 80 68 88 Z"
-                  fill="#6b4a2e"
-                />
-                <path
-                  d="M76 52 C78 46 84 44 88 46 M90 40 C94 36 100 36 102 40 M106 38 C110 34 116 36 118 40 M120 46 C124 44 128 48 128 52 M84 56 C88 52 94 52 96 56 M102 52 C106 48 112 50 114 54"
-                  fill="none"
-                  stroke="#d2ad72"
-                  stroke-width="3"
-                  stroke-linecap="round"
-                />
-              </g>
-            )}
-            {who === 'margot' && (
-              <path
-                d="M100 40 C78 40 64 56 64 82 C64 100 62 114 58 126 C66 112 70 98 72 80 C74 66 86 56 98 54 L100 58 L102 54 C114 56 126 66 128 80 C130 98 134 112 142 126 C138 114 136 100 136 82 C136 56 122 40 100 40 Z"
-                fill="#9a6440"
-              />
-            )}
-          </g>
-        </g>
+          <linearGradient id={id('tee')} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color={TEE} />
+            <stop offset="1" stop-color={TEE_SHADE} />
+          </linearGradient>
+        </>
       )
     }
+    {
+      who === 'pop' && (
+        <radialGradient id={id('fur')} cx="50%" cy="38%" r="65%">
+          <stop offset="0" stop-color="#ffffff" />
+          <stop offset="0.7" stop-color="#f6f3ee" />
+          <stop offset="1" stop-color="#dedad2" />
+        </radialGradient>
+      )
+    }
+  </defs>
+
+  <circle cx="100" cy="100" r="96" fill={INK}></circle>
+
+  <g clip-path={`url(#${id('disc')})`}>
+    <g transform="translate(100 118) scale(1.16) translate(-100 -118)">
+      {
+        person ? (
+          <g class="body">
+            {/* Margot's long hair, behind everything */}
+            {who === 'margot' && (
+              <g>
+                <path d="M62 82 C58 50 78 36 100 36 C122 36 142 50 138 82 C138 104 144 120 140 136 C146 148 150 160 148 174 L52 174 C50 160 54 148 60 136 C56 120 62 104 62 82 Z" fill={`url(#${id('hair')})`} />
+                <path d="M64 100 C62 126 58 148 54 170 M70 120 C68 140 66 156 64 172 M136 100 C138 126 142 148 146 170 M130 120 C132 140 134 156 136 172" fill="none" stroke="#6f3f24" stroke-width="2" stroke-linecap="round" />
+              </g>
+            )}
+
+            {/* T-shirt with collar and a fold */}
+            <path d="M24 214 C24 172 50 154 82 149 L118 149 C150 154 176 172 176 214 Z" fill={`url(#${id('tee')})`} />
+            <path d="M82 149 C87 163 113 163 118 149" fill="none" stroke={TEE_SHADE} stroke-width="4.5" />
+            <path d="M56 178 C60 188 62 198 62 210 M144 178 C140 188 138 198 138 210" fill="none" stroke={TEE_SHADE} stroke-width="2" stroke-linecap="round" />
+            <text x="116" y="177" font-size="10" font-weight="800" font-family="Archivo, sans-serif" fill={INK} letter-spacing="0.5">LDL</text>
+
+            {/* Neck, with the shadow cast by the jaw */}
+            <path d="M87 124 L113 124 L115 152 C107 159 93 159 85 152 Z" fill={person.skin[1]} />
+            <path d="M87 128 C94 138 106 138 113 128 L113 136 C106 142 94 142 87 136 Z" fill={person.skin[2]} opacity="0.7" />
+
+            {/* Necklaces */}
+            {who === 'dylan' && (
+              <g>
+                <path d="M83 151 C86 178 114 178 117 151" fill="none" stroke={INK} stroke-width="1.6" />
+                <circle cx="100" cy="171.5" r="2.4" fill={INK} />
+              </g>
+            )}
+            {who === 'theo' && (
+              <g>
+                <path d="M84 151 C88 179 112 179 116 151" fill="none" stroke="#c9c9c9" stroke-width="1.5" stroke-dasharray="1.8 1.2" />
+                <path d="M100 173 L103.5 178 L100 184 L96.5 178 Z" fill="#d6d6d6" stroke="#9a9a9a" stroke-width="0.6" />
+              </g>
+            )}
+
+            <g class="head">
+              {/* Ears */}
+              <g>
+                <ellipse cx={who === 'dylan' ? 66 : 69} cy="93" rx="6.5" ry="10" fill={person.skin[1]} />
+                <ellipse cx={who === 'dylan' ? 134 : 131} cy="93" rx="6.5" ry="10" fill={person.skin[1]} />
+                <path d={who === 'dylan' ? 'M65 88 C63 92 64 98 67 100' : 'M68 88 C66 92 67 98 70 100'} fill="none" stroke={person.skin[2]} stroke-width="1.8" stroke-linecap="round" />
+                <path d={who === 'dylan' ? 'M135 88 C137 92 136 98 133 100' : 'M132 88 C134 92 133 98 130 100'} fill="none" stroke={person.skin[2]} stroke-width="1.8" stroke-linecap="round" />
+              </g>
+
+              {/* Face, modelled by a soft radial light from the upper left */}
+              <path d={person.face} fill={`url(#${id('skin')})`} />
+              {/* Cheekbone and temple shading on the shadow side */}
+              <path d="M124 88 C126 104 122 118 112 128 C120 120 126 108 126 92 Z" fill={person.skin[2]} opacity="0.35" />
+              {/* Blush */}
+              <g fill="#e9867a" opacity={person.blush}>
+                <ellipse cx="80" cy="104" rx="7" ry="4" />
+                <ellipse cx="120" cy="104" rx="7" ry="4" />
+              </g>
+
+              {/* Facial hair */}
+              {who === 'dylan' && (
+                <path
+                  d="M70 104 C72 122 84 136 100 138 C116 136 128 122 130 104 C127 116 120 124 112 126 C106 122 94 122 88 126 C80 124 73 116 70 104 Z M88 110 C92 108 108 108 112 110 C108 112 92 112 88 110 Z"
+                  fill={`url(#${id('stubble')})`}
+                  opacity="0.75"
+                />
+              )}
+              {who === 'theo' && (
+                <g>
+                  <path d="M76 110 C80 126 90 136 100 138 C110 136 120 126 124 110 C120 122 112 128 104 129 L96 129 C88 128 80 122 76 110 Z" fill={`url(#${id('stubble')})`} opacity="0.35" />
+                  <path d="M91 127 C94 131 106 131 109 127 C109 133 105 138.5 100 138.5 C95 138.5 91 133 91 127 Z" fill="#4e3421" />
+                  <path d="M98 121.5 L102 121.5 L101 125.5 L99 125.5 Z" fill="#4e3421" />
+                </g>
+              )}
+
+              {/* Brows */}
+              <path d={person.brows.d} fill="none" stroke={person.brows.color} stroke-width={person.brows.width} stroke-linecap="round" />
+
+              {/* Eyes: white, iris that follows the pointer, upper lid */}
+              <g class="eyes">
+                {EYES.map((x, i) => (
+                  <g class="eye">
+                    <path d={`M${x - 8} 90 Q${x} 83 ${x + 8} 90 Q${x} 95.5 ${x - 8} 90 Z`} fill="#fbfaf7" />
+                    <g clip-path={`url(#${id(`eye${i}`)})`}>
+                      <g class="iris">
+                        <circle cx={x} cy="89.6" r="3.9" fill={person.iris} />
+                        <circle cx={x} cy="89.6" r="3.9" fill="none" stroke="#000" stroke-opacity="0.35" stroke-width="0.7" />
+                        <circle cx={x} cy="89.6" r="1.7" fill={INK} />
+                        <circle cx={x + 1.2} cy="88.4" r="0.9" fill="#fff" />
+                      </g>
+                    </g>
+                    <path d={`M${x - 8.6} 90.2 Q${x} 82.4 ${x + 8.6} 90.2`} fill="none" stroke="#2a1c14" stroke-width="1.5" stroke-linecap="round" />
+                    {who === 'margot' && <path d={`M${x + (i ? 6 : -6)} 87.6 l${i ? 2.6 : -2.6} -1.6`} stroke="#2a1c14" stroke-width="1.1" stroke-linecap="round" />}
+                    <path d={`M${x - 6} 93 Q${x} 95.4 ${x + 6} 93`} fill="none" stroke={person.skin[2]} stroke-width="1" stroke-linecap="round" opacity="0.8" />
+                  </g>
+                ))}
+              </g>
+
+              {/* Nose: shadow side, tip, nostrils */}
+              <path d="M102 88 C103 95 105 100 106 104" fill="none" stroke={person.skin[2]} stroke-width="2" stroke-linecap="round" opacity="0.7" />
+              <ellipse cx="100" cy="104.5" rx="4.6" ry="3.2" fill={person.skin[0]} opacity="0.7" />
+              <path d="M94 106.2 C95.5 104.6 97 105.4 97.6 106.6 M106 106.2 C104.5 104.6 103 105.4 102.4 106.6" fill="none" stroke={person.skin[2]} stroke-width="1.6" stroke-linecap="round" />
+
+              {/* Smile: open mouth, upper teeth, lower lip; smile lines */}
+              <path d="M87 114.5 C92 124.5 108 124.5 113 114.5 C106 117.2 94 117.2 87 114.5 Z" fill="#6e2c2a" />
+              <path d="M88.6 115.3 C94 117.6 106 117.6 111.4 115.3 L110.4 118.4 C105 120 95 120 89.6 118.4 Z" fill="#fdfcf9" />
+              <path d="M90 121 C95 125 105 125 110 121" fill="none" stroke="#d98f84" stroke-width="2" stroke-linecap="round" />
+              <path d="M87 114.5 C91.5 113.4 95.5 113.8 100 114.8 C104.5 113.8 108.5 113.4 113 114.5" fill="none" stroke="#b86a5e" stroke-width="1.3" stroke-linecap="round" />
+              <path d="M83 111 C82 115 83 118 85 120 M117 111 C118 115 117 118 115 120" fill="none" stroke={person.skin[2]} stroke-width="1.3" stroke-linecap="round" opacity="0.8" />
+
+              {/* Hair */}
+              {(who === 'dylan' || who === 'theo') && (
+                <g>
+                  {/* Cap of hair over the skull, short at the sides */}
+                  <path
+                    d={who === 'dylan'
+                      ? 'M66 92 C62 76 62 62 70 53 C80 43 120 43 130 53 C138 62 138 76 134 92 C131 80 127 72 120 68 C108 72 90 72 78 67 C72 72 68 82 66 92 Z'
+                      : 'M69 90 C65 76 66 63 73 55 C82 45 118 45 127 55 C134 63 135 76 131 90 C128 79 124 71 118 67 C108 70 90 70 80 67 C75 72 71 80 69 90 Z'}
+                    fill={HAIR_TONES[who][0]}
+                  />
+                  {/* Locks, darker at the roots and lighter at the tips */}
+                  {LOCKS[who].map((l) => (
+                    <path d={lock(l)} fill={`url(#${id('hair')})`} />
+                  ))}
+                </g>
+              )}
+              {who === 'margot' && (
+                <g>
+                  <path
+                    d="M100 40 C78 40 64 55 64 80 C64 98 62 112 57 126 C66 114 70 100 72 84 C74 68 84 57 97 55 L100 58 L103 55 C116 57 126 68 128 84 C130 100 134 114 143 126 C138 112 136 98 136 80 C136 55 122 40 100 40 Z"
+                    fill={`url(#${id('hair')})`}
+                  />
+                  <path d="M66 100 C62 116 58 128 62 142 C64 152 60 160 58 166 M134 100 C138 116 142 128 138 142 C136 152 140 160 142 166" fill="none" stroke="#b47a4a" stroke-width="3" stroke-linecap="round" />
+                  <path d="M97 55 C88 58 80 66 76 78 M103 55 C112 58 120 66 124 78 M94 44 C84 48 74 58 70 74 M106 44 C116 48 126 58 130 74" fill="none" stroke="#c88b58" stroke-width="2" stroke-linecap="round" />
+                  <path d="M100 40 L100 56" stroke="#7a4529" stroke-width="1.4" stroke-linecap="round" />
+                </g>
+              )}
+            </g>
+          </g>
+        ) : (
+          <g class="body">
+            {/* Chest fur and harness */}
+            <path d="M28 214 C26 172 50 148 100 145 C150 148 174 172 172 214 Z" fill={`url(#${id('fur')})`} />
+            <path d="M52 178 L62 170 L70 180 L80 172 L90 182 L100 174 L110 182 L120 172 L130 180 L138 170 L148 178" fill="none" stroke="#e2ddd4" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M58 160 C78 178 122 178 142 160 L149 178 C124 198 76 198 51 178 Z" fill="#1b1b1b" />
+            <path d="M58 160 C78 178 122 178 142 160" fill="none" stroke="#3a3a3a" stroke-width="1.5" />
+            <rect x="91" y="177" width="18" height="12" rx="2" fill={GOLD} />
+
+            <g class="head">
+              {/* Ears: pointed, pink inside */}
+              <path d="M56 76 L62 22 C72 30 84 44 92 58 Z" fill={`url(#${id('fur')})`} />
+              <path d="M144 76 L138 22 C128 30 116 44 108 58 Z" fill={`url(#${id('fur')})`} />
+              <path d="M64 62 L66 34 C72 40 79 48 84 56 Z" fill="#e7b9b0" />
+              <path d="M136 62 L134 34 C128 40 121 48 116 56 Z" fill="#e7b9b0" />
+
+              {/* Fluffy head and its tufts */}
+              <path
+                d="M100 42 C110 36 124 42 130 48 C140 46 148 56 147 66 C157 72 160 86 154 96 C162 106 158 120 149 126 C152 138 142 150 130 150 C122 160 108 160 100 156 C92 160 78 160 70 150 C58 150 48 138 51 126 C42 120 38 106 46 96 C40 86 43 72 53 66 C52 56 60 46 70 48 C76 42 90 36 100 42 Z"
+                fill={`url(#${id('fur')})`}
+              />
+              <path d="M62 70 C66 64 70 62 74 62 M126 62 C130 62 134 64 138 70 M52 98 C56 96 60 96 62 98 M148 98 C144 96 140 96 138 98 M58 124 C62 120 66 120 70 122 M142 124 C138 120 134 120 130 122 M84 50 C88 47 92 47 96 49 M104 49 C108 47 112 47 116 50" fill="none" stroke="#e0dbd2" stroke-width="2" stroke-linecap="round" />
+
+              {/* Eyes: dark almonds with a brown glint */}
+              <g class="eyes">
+                {[82, 118].map((x) => (
+                  <g class="eye">
+                    <path d={`M${x - 6.5} 95 Q${x} 87.5 ${x + 6.5} 95 Q${x} 101 ${x - 6.5} 95 Z`} fill="#1a1210" />
+                    <g class="iris">
+                      <circle cx={x} cy="94.6" r="3" fill="#3b2418" />
+                      <circle cx={x + 1.4} cy="93.2" r="1.3" fill="#fff" />
+                    </g>
+                  </g>
+                ))}
+              </g>
+
+              {/* Muzzle, nose, open mouth and tongue */}
+              <ellipse cx="100" cy="118" rx="21" ry="15" fill="#ffffff" />
+              <path d="M90.5 108.5 C90.5 103.5 109.5 103.5 109.5 108.5 C109.5 114 104 117.5 100 117.5 C96 117.5 90.5 114 90.5 108.5 Z" fill="#161616" />
+              <ellipse cx="97" cy="107.4" rx="3" ry="1.6" fill="#555" />
+              <path d="M100 117.5 L100 121.5" stroke="#161616" stroke-width="2" stroke-linecap="round" />
+              <path d="M82 118 C86 136 114 136 118 118 C111 123 104 124 100 121.5 C96 124 89 123 82 118 Z" fill="#3a1f1f" />
+              <path class="tongue" d="M91 125 C90 156 110 156 109 125 Z" fill="#ec8f9b" />
+              <path d="M100 128 L100 146" stroke="#cf6e7c" stroke-width="1.5" stroke-linecap="round" />
+            </g>
+          </g>
+        )
+      }
     </g>
   </g>
   <circle cx="100" cy="100" r="97.5" fill="none" stroke={GOLD} stroke-width="1.5"></circle>
@@ -168,8 +334,9 @@ const clip = `clip-${who}`;
     transform: rotate(calc(var(--hx) * 4deg));
     transition: transform 600ms var(--ease-out-strong);
   }
-  .eyes {
-    transform: translate(calc(var(--ex) * 2.4px), calc(var(--ey) * 1.8px));
+  /* Only the iris moves: it stays inside the eye, clipped by its outline. */
+  .iris {
+    transform: translate(calc(var(--ex) * 2.6px), calc(var(--ey) * 1.4px));
     transition: transform 300ms var(--ease-out-strong);
   }
   .eye {
@@ -196,7 +363,7 @@ const clip = `clip-${who}`;
       transform: scaleY(1);
     }
     97% {
-      transform: scaleY(0.1);
+      transform: scaleY(0.08);
     }
   }
   .tongue {
@@ -206,18 +373,13 @@ const clip = `clip-${who}`;
   }
   @keyframes pant {
     to {
-      transform: scaleY(1.18);
+      transform: scaleY(1.14);
     }
-  }
-  .ear {
-    transform-box: fill-box;
-    transform-origin: 50% 100%;
-    transition: transform 300ms var(--ease-out-strong);
   }
 
   @media (prefers-reduced-motion: reduce) {
     .head,
-    .eyes {
+    .iris {
       transform: none;
       transition: none;
     }
