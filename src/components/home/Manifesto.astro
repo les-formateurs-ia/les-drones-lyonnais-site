@@ -48,32 +48,6 @@ const facts = [...FACTS, { value: String(CLIENTS.length), label: 'clients, d’E
 </section>
 
 <style>
-  /* Bridge from the hero: the page arrives as a fade to black, never as an edge. */
-  .manifesto-section::before {
-    content: '';
-    position: absolute;
-    inset: auto 0 100%;
-    height: 45svh;
-    background: linear-gradient(rgb(0 0 0 / 0), #000);
-    pointer-events: none;
-    opacity: 0;
-  }
-  /* It only appears once the visitor starts scrolling, so the hero stays untouched. */
-  @supports (animation-timeline: scroll()) {
-    .manifesto-section::before {
-      animation-name: bridge-in;
-      animation-timing-function: linear;
-      animation-fill-mode: both;
-      animation-timeline: scroll(root);
-      animation-range: 0 30svh;
-    }
-  }
-  @keyframes bridge-in {
-    to {
-      opacity: 1;
-    }
-  }
-
   /* Each word goes from faint to ink at its own point of the section's journey
      through the viewport (--p = its position in the sentence). */
   @supports (animation-timeline: view()) {

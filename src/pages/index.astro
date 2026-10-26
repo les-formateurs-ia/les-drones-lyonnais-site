@@ -40,9 +40,11 @@ const organization = {
 
 <BaseLayout title={title} description={description} image={abs(social.src)} headerOverlay headerCompact>
   <JsonLd slot="head" data={organization} />
-  <Hero />
-  <!-- The rest of the page slides over the hero like a curtain. -->
-  <div class="relative z-10 bg-ink">
+  <div class="dive">
+    <Hero />
+  </div>
+  <!-- The rest of the page, revealed through the hero's lens. -->
+  <div class="after-dive bg-ink">
     <Manifesto />
     <ClientLogos />
     <Services />
@@ -51,3 +53,41 @@ const organization = {
     <FinalCta />
   </div>
 </BaseLayout>
+
+<style>
+  /* Through the lens: the hero stays pinned for one screen of scrolling while its lens
+     opens; the page sits right behind it and holds still (translate cancels the scroll)
+     until the opening is complete, then scrolls on normally. Without scroll-driven
+     animations, or with reduced motion, the page simply follows the hero. */
+  .dive {
+    position: relative;
+    z-index: 2;
+  }
+  .after-dive {
+    position: relative;
+    z-index: 1;
+  }
+  @supports (animation-timeline: scroll()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .dive {
+        height: 200svh;
+      }
+      .after-dive {
+        margin-top: -100svh;
+        animation-name: hold;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: scroll(root);
+        animation-range: 0 100svh;
+      }
+    }
+  }
+  @keyframes hold {
+    from {
+      translate: 0 -100svh;
+    }
+    to {
+      translate: 0 0;
+    }
+  }
+</style>

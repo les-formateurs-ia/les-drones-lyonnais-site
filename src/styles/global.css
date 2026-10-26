@@ -38,6 +38,13 @@
   --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
+/* Radius of the homepage hero's lens opening; registered so it can animate. */
+@property --lens {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;

@@ -161,7 +161,8 @@ const tapeOffset = (heading: number) => COMPASS / 2 - ((8 + heading / 45) * TICK
     </ul>
   </div>
 
-  <div class="recede" aria-hidden="true"></div>
+  <!-- Gold rim of the lens opening, drawn around the hole as it widens. -->
+  <div class="lens-ring" aria-hidden="true"></div>
 
   <script type="application/json" data-flight set:html={JSON.stringify(Object.fromEntries(modes.map((m) => [m.activity.id, m.flight])))} />
 </section>
@@ -555,12 +556,16 @@ const tapeOffset = (heading: number) => COMPASS / 2 - ((8 + heading / 45) * TICK
     outline-offset: 4px;
   }
 
-  /* Darkens as the page slides over the hero. */
-  .recede {
+  .lens-ring {
     position: absolute;
-    inset: 0;
-    z-index: 4;
-    background: #000;
+    top: 46%;
+    left: 50%;
+    z-index: 5;
+    width: calc(var(--lens) * 2 + 6px);
+    height: calc(var(--lens) * 2 + 6px);
+    translate: -50% -50%;
+    border: 3px solid var(--color-gold);
+    border-radius: 50%;
     opacity: 0;
     pointer-events: none;
   }
@@ -674,12 +679,28 @@ const tapeOffset = (heading: number) => COMPASS / 2 - ((8 + heading / 45) * TICK
     }
   }
 
-  /* ---------- Hand-over: the camera dives in while the display switches off ----------
-     Over the first screen of scrolling, the flight display and the modes fade out, the
-     feed pushes in, and the picture fades to the black of the next section, which then
-     simply continues it: no edge between the hero and the page. */
+  /* ---------- Hand-over: through the lens ----------
+     Over the first screen of scrolling the flight display switches off, the camera
+     zooms towards the reticle, and the reticle opens like a lens: a widening hole
+     (gold-rimmed) through which the next section appears, until it fills the screen.
+     The page behind holds still during the opening (see index.astro). */
   @supports (animation-timeline: scroll()) {
     @media (prefers-reduced-motion: no-preference) {
+      .hero {
+        mask-image: radial-gradient(circle at 50% 46%, transparent var(--lens), #000 calc(var(--lens) + 0.5px));
+        animation-name: lens-open;
+        animation-timing-function: cubic-bezier(0.5, 0, 0.75, 0);
+        animation-fill-mode: both;
+        animation-timeline: scroll(root);
+        animation-range: 12svh 100svh;
+      }
+      .lens-ring {
+        animation-name: ring-on;
+        animation-timing-function: cubic-bezier(0.5, 0, 0.75, 0);
+        animation-fill-mode: both;
+        animation-timeline: scroll(root);
+        animation-range: 12svh 100svh;
+      }
       .feeds {
         animation-name: signal, dive;
         animation-duration: 1300ms, auto;
@@ -695,21 +716,47 @@ const tapeOffset = (heading: number) => COMPASS / 2 - ((8 + heading / 45) * TICK
         animation-timing-function: linear;
         animation-fill-mode: both;
         animation-timeline: scroll(root);
-        animation-range: 0 35svh;
+        animation-range: 0 22svh;
+      }
+      /* The reticle is where the lens opens: it locks on (gold) just before. */
+      .reticle {
+        animation-name: appear, lock-on;
+        animation-duration: 700ms, auto;
+        animation-timing-function: var(--ease-out-strong), linear;
+        animation-delay: 700ms, 0s;
+        animation-fill-mode: backwards, both;
+        animation-timeline: auto, scroll(root);
+        animation-range: normal, 0 12svh;
       }
     }
-    .recede {
-      animation-name: darken;
-      animation-timing-function: linear;
-      animation-fill-mode: both;
-      animation-timeline: scroll(root);
-      animation-range: 15svh 85svh;
+  }
+  @keyframes lens-open {
+    from {
+      --lens: 0px;
+    }
+    to {
+      --lens: 80vmax;
+      visibility: hidden;
+    }
+  }
+  @keyframes ring-on {
+    0% {
+      opacity: 0;
+    }
+    8% {
+      opacity: 1;
+    }
+    85% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
     }
   }
   @keyframes dive {
     to {
-      transform: scale(1.35);
-      filter: blur(6px);
+      transform: scale(2.4);
+      filter: blur(3px);
     }
   }
   @keyframes switch-off {
@@ -718,9 +765,10 @@ const tapeOffset = (heading: number) => COMPASS / 2 - ((8 + heading / 45) * TICK
       transform: translateY(-16px);
     }
   }
-  @keyframes darken {
+  @keyframes lock-on {
     to {
-      opacity: 1;
+      color: var(--color-gold);
+      scale: 1.25;
     }
   }
 
@@ -800,7 +848,7 @@ const tapeOffset = (heading: number) => COMPASS / 2 - ((8 + heading / 45) * TICK
     if (!still) {
       hero.classList.add('is-cycling');
       timer = window.setInterval(() => {
-        if (document.hidden || window.scrollY > innerHeight * 0.5) return;
+        if (document.hidden || window.scrollY > 4) return;
         show(ids[(ids.indexOf(current) + 1) % ids.length]);
       }, CYCLE);
     }

@@ -60,8 +60,10 @@ public/            fonts, favicon, robots.txt
   interaction. Feeds are photos from the current site until the client provides short
   aerial videos (one per activity, muted loop, ≤ 3 MB each).
   The h1 is the small caption above the modes.
-- One boot-up sequence on load; on scroll the camera dives in and fades to the black
-  of the manifesto, so the page continues the hero without an edge.
+- One boot-up sequence on load; on scroll the camera zooms to the reticle, which opens
+  like a lens (registered --lens radius + radial mask on .hero) and reveals the page
+  behind. The page is held still during the opening (index.astro: .dive track of
+  200svh, .after-dive pulled up by 100svh with a scroll-driven translate).
 - Services: "same drone, different sensors" — a pinned control screen shows each
   service through its camera mode (SVG filters: thermal, survey; overlays for mesh,
   detection, cinema, live, grading). Photos from the current site, in src/assets/services.
