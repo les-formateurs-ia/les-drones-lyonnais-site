@@ -54,9 +54,15 @@ public/            fonts, favicon, robots.txt
 
 ## Homepage motion (client request: a "wow" effect)
 
-- First screen = only the triptych (Prestations | Boutique + Location | Formations),
-  full screen, client request. The h1 is the small caption at its bottom.
-- One opening sequence on load; the rest of the page slides over the hero (curtain).
+- First screen = only the choice between the activities, full screen (client request):
+  a live "drone camera" view (feed + on-screen flight data). The four activities are
+  its flight modes: pointing at one switches the feed; modes cycle until the first
+  interaction. Feeds are photos from the current site until the client provides short
+  aerial videos (one per activity, muted loop, ≤ 3 MB each).
+  The h1 is the small caption above the modes.
+- One boot-up sequence on load; the rest of the page slides over the hero (curtain).
+- Team portraits are traced from the photos in src/assets/team at build time
+  (lib/trace-portrait.ts, brand palette) and print in layer by layer.
 - Reveals fire once (`data-reveal` + `src/lib/reveal.ts`, the only client script).
 - Scroll-linked effects are native CSS scroll-driven animations inside
   `@supports (animation-timeline: …)`, always written with longhands

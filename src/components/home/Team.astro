@@ -3,6 +3,7 @@
 // the people come in one after the other underneath.
 import { Image } from 'astro:assets';
 import equipe from '../../assets/images/equipe.jpg';
+import Portrait from '../ui/Portrait.astro';
 import { TEAM, TEAM_INTRO } from '../../data/home';
 ---
 
@@ -30,7 +31,7 @@ import { TEAM, TEAM_INTRO } from '../../data/home';
     {
       TEAM.map((member, i) => (
         <li class="member flex flex-col" data-reveal style={{ '--i': i }}>
-          <Image src={member.photo} alt="" width={96} height={94} densities={[1, 2]} class="avatar mb-5 size-20 object-contain" />
+          <Portrait file={member.portrait} class="mb-6 size-28 md:size-32" />
           <h3 class="text-xl font-bold [font-stretch:112%]">{member.name}</h3>
           <p class="mt-1 font-medium text-gold-deep">{member.role}</p>
           <p class="mt-3 leading-relaxed text-ink-soft">{member.bio}</p>
@@ -42,15 +43,6 @@ import { TEAM, TEAM_INTRO } from '../../data/home';
 </section>
 
 <style>
-  .avatar {
-    transition: transform 300ms var(--ease-out-strong);
-  }
-  @media (hover: hover) and (pointer: fine) {
-    .member:hover .avatar {
-      transform: rotate(-6deg) scale(1.06);
-    }
-  }
-
   /* The window clips (overflow: hidden makes it a scroll container), so the photo
      follows the window's named timeline rather than its own. */
   @supports (animation-timeline: view()) {
@@ -86,3 +78,24 @@ import { TEAM, TEAM_INTRO } from '../../data/home';
     }
   }
 </style>
+
+<script>
+  // Portraits lean towards the pointer while it moves over their card.
+  const fine = matchMedia('(hover: hover) and (pointer: fine)').matches;
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (fine && !still) {
+    document.querySelectorAll<HTMLElement>('.member').forEach((card) => {
+      const portrait = card.querySelector<HTMLElement>('.portrait');
+      if (!portrait) return;
+      card.addEventListener('pointermove', (e) => {
+        const r = card.getBoundingClientRect();
+        portrait.style.setProperty('--mx', (((e.clientX - r.left) / r.width) * 2 - 1).toFixed(3));
+        portrait.style.setProperty('--my', (((e.clientY - r.top) / r.height) * 2 - 1).toFixed(3));
+      });
+      card.addEventListener('pointerleave', () => {
+        portrait.style.setProperty('--mx', '0');
+        portrait.style.setProperty('--my', '0');
+      });
+    });
+  }
+</script>
