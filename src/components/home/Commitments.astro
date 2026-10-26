@@ -1,0 +1,35 @@
+---
+import { Image } from 'astro:assets';
+import france from '../../assets/images/partout-en-france.jpg';
+import { COMMITMENTS } from '../../data/home';
+---
+
+<section aria-labelledby="commitments-title" class="border-t border-line py-16 md:py-24">
+  <div class="wrap grid gap-12 md:grid-cols-12 md:gap-10">
+    <Image
+      src={france}
+      alt="La voiture des Drones Lyonnais garée devant un château, en déplacement pour une mission"
+      widths={[480, 720, 960]}
+      sizes="(min-width: 768px) 40vw, 92vw"
+      class="aspect-[4/5] w-full object-cover md:col-span-5 max-md:aspect-[4/3] max-md:object-[50%_60%]"
+    />
+
+    <div class="flex flex-col justify-center md:col-span-7 lg:pl-8">
+      <h2 id="commitments-title" class="display text-[clamp(1.8rem,3.4vw,2.8rem)]">Basés à Lyon, au plus près de vos projets</h2>
+      <p class="mt-5 max-w-[52ch] text-lg leading-relaxed text-ink-soft">
+        Nous nous déplaçons dans toute la France avec notre matériel professionnel. Notre connaissance des réglementations locales rend chaque tournage et chaque inspection fluides.
+      </p>
+
+      <ul class="mt-10 grid gap-x-10 gap-y-8 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2">
+        {
+          COMMITMENTS.map((item) => (
+            <li class="border-t-2 border-gold pt-4">
+              <h3 class="text-lg font-bold [font-stretch:112%]">{item.title}</h3>
+              <p class="mt-2 leading-relaxed text-ink-soft">{item.text}</p>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </div>
+</section>

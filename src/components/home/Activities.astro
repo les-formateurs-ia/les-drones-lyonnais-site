@@ -1,0 +1,207 @@
+---
+// The brand's triptych: three black and white photos, one per activity.
+// The photo you point at takes its colours back and widens — the activity "comes alive".
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+import prestations from '../../assets/images/prestations.jpg';
+import boutiqueLocation from '../../assets/images/boutique-location.jpg';
+import formations from '../../assets/images/formations.jpg';
+import Square from '../ui/Square.astro';
+import { ACTIVITIES, type Activity } from '../../data/site';
+
+interface PanelLink {
+  activity: Activity;
+  text: string;
+}
+interface Panel {
+  photo: ImageMetadata;
+  /** Where the crop stays anchored when the panel is short (mobile). */
+  focus: string;
+  links: PanelLink[];
+}
+
+const panels: Panel[] = [
+  {
+    photo: prestations,
+    focus: '50% 78%',
+    links: [{ activity: ACTIVITIES.prestations, text: 'Prises de vues, inspections et relevés 3D' }],
+  },
+  {
+    photo: boutiqueLocation,
+    focus: '50% 80%',
+    links: [
+      { activity: ACTIVITIES.boutique, text: 'Drones, kits C5 et accessoires' },
+      { activity: ACTIVITIES.location, text: 'Drones, caméras, son et lumière' },
+    ],
+  },
+  {
+    photo: formations,
+    focus: '50% 72%',
+    links: [{ activity: ACTIVITIES.formations, text: 'Pilotage de drone et métiers de l’image' }],
+  },
+];
+
+// Black disappears on the photos: the shop's square turns white there.
+const squareColor = (a: Activity) => (a.id === 'boutique' ? 'var(--color-paper)' : a.color);
+---
+
+<ul class="activities" aria-label="Nos activités">
+  {
+    panels.map((panel) => (
+      <li class="panel">
+        <Image
+          src={panel.photo}
+          alt=""
+          widths={[480, 720, 946]}
+          sizes="(min-width: 1024px) 40vw, 100vw"
+          loading="eager"
+          class="photo"
+          style={{ objectPosition: panel.focus }}
+        />
+        <div class="links" data-count={panel.links.length}>
+          {panel.links.map(({ activity, text }) => (
+            <a href={activity.href} class="link">
+              <span class="label flex items-center gap-3 font-bold leading-none">
+                <Square color={squareColor(activity)} class="size-[0.38em]" />
+                {activity.label}
+              </span>
+              <span class="rule" aria-hidden="true" />
+              <span class="max-w-[24ch] text-[15px] leading-snug text-white/85">{text}</span>
+            </a>
+          ))}
+        </div>
+      </li>
+    ))
+  }
+</ul>
+
+<style>
+  .activities {
+    display: flex;
+    gap: 2px;
+    height: clamp(440px, 66vh, 700px);
+    background: var(--color-paper);
+  }
+  .panel {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    background: var(--color-ink);
+    transition: flex-grow 650ms var(--ease-out-strong);
+  }
+  .photo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: grayscale(1) contrast(1.05);
+    transition:
+      filter 650ms var(--ease-out-strong),
+      transform 900ms var(--ease-out-strong);
+  }
+  /* Scrim behind the labels only, so the photo stays readable below. */
+  .panel::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    height: 55%;
+    z-index: 1;
+    background: linear-gradient(rgb(0 0 0 / 0.5), rgb(0 0 0 / 0));
+    pointer-events: none;
+  }
+
+  .links {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    height: 100%;
+  }
+  .links[data-count='2'] {
+    grid-template-columns: 1fr 1fr;
+  }
+  .link {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    padding: clamp(24px, 3vw, 40px);
+    color: #fff;
+  }
+  .link:focus-visible {
+    outline-offset: -6px;
+    outline-color: #fff;
+  }
+  .label {
+    font-size: clamp(1.5rem, 2.3vw, 2.1rem);
+    font-stretch: 118%;
+  }
+  /* Two activities share the middle photo: smaller labels and padding so both fit. */
+  .links[data-count='2'] .link {
+    padding-inline: clamp(20px, 2vw, 32px);
+  }
+  .links[data-count='2'] .label {
+    font-size: clamp(1.3rem, 1.75vw, 1.7rem);
+    font-stretch: 108%;
+  }
+  .rule {
+    width: 40px;
+    height: 2px;
+    background: var(--color-gold);
+    transition: width 450ms var(--ease-out-strong);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .panel:hover {
+      flex-grow: 1.45;
+    }
+    .panel:hover .photo {
+      filter: grayscale(0) contrast(1);
+      transform: scale(1.03);
+    }
+    .link:hover .rule {
+      width: 88px;
+    }
+  }
+  .panel:focus-within .photo {
+    filter: grayscale(0) contrast(1);
+  }
+  .link:focus-visible .rule {
+    width: 88px;
+  }
+
+  @media (max-width: 1023px) {
+    .activities {
+      flex-direction: column;
+      height: auto;
+    }
+    .panel {
+      flex: none;
+      height: 260px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .panel,
+    .photo,
+    .label {
+    font-size: clamp(1.5rem, 2.3vw, 2.1rem);
+    font-stretch: 118%;
+  }
+  /* Two activities share the middle photo: smaller labels and padding so both fit. */
+  .links[data-count='2'] .link {
+    padding-inline: clamp(20px, 2vw, 32px);
+  }
+  .links[data-count='2'] .label {
+    font-size: clamp(1.3rem, 1.75vw, 1.7rem);
+    font-stretch: 108%;
+  }
+  .rule {
+      transition: none;
+    }
+    .panel:hover .photo {
+      transform: none;
+    }
+  }
+</style>

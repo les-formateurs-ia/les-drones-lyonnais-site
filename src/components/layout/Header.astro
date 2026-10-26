@@ -1,0 +1,131 @@
+---
+import { Image } from 'astro:assets';
+import logo from '../../assets/brand/logo-noir.png';
+import Square from '../ui/Square.astro';
+import Button from '../ui/Button.astro';
+import { NAV, SITE } from '../../data/site';
+---
+
+<header class="relative z-20 border-b border-line bg-paper">
+  <div class="wrap flex h-[72px] items-center justify-between gap-6">
+    <a href="/" class="shrink-0" aria-label={`${SITE.name}, accueil`}>
+      <Image src={logo} alt="" height={36} densities={[1, 2]} loading="eager" class="h-9 w-auto" />
+    </a>
+
+    <nav aria-label="Navigation principale" class="hidden md:block">
+      <ul class="flex items-center gap-7">
+        {
+          NAV.map((item) => (
+            <li>
+              <a href={item.href} class="nav-link flex items-center gap-2 py-2 text-[15px] font-medium">
+                <Square color={item.color} />
+                {item.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+
+    <div class="hidden items-center gap-5 md:flex">
+      <a href={SITE.phoneHref} class="hidden text-[15px] font-medium tabular-nums lg:inline hover-fine:text-gold-deep">{SITE.phone}</a>
+      <Button href={SITE.contactPath} size="sm">Demander un devis</Button>
+    </div>
+
+    <!-- Mobile menu: a native disclosure, no script needed. -->
+    <details class="menu md:hidden">
+      <summary class="flex size-11 cursor-pointer items-center justify-center" aria-label="Menu">
+        <span class="burger" aria-hidden="true"></span>
+      </summary>
+      <div class="menu-panel absolute inset-x-0 top-full border-b border-line bg-paper">
+        <ul class="wrap py-2">
+          {
+            NAV.map((item) => (
+              <li class="border-b border-line last:border-0">
+                <a href={item.href} class="flex items-center gap-3 py-4 text-lg font-medium">
+                  <Square color={item.color} />
+                  {item.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+        <div class="wrap flex flex-col gap-3 pb-6">
+          <Button href={SITE.contactPath}>Demander un devis</Button>
+          <Button href={SITE.phoneHref} variant="outline">Appeler le {SITE.phone}</Button>
+        </div>
+      </div>
+    </details>
+  </div>
+</header>
+
+<style>
+  .nav-link {
+    background: linear-gradient(var(--color-gold), var(--color-gold)) no-repeat left bottom / 0 1px;
+    transition: background-size 200ms var(--ease-out-strong);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .nav-link:hover {
+      background-size: 100% 1px;
+    }
+  }
+
+  .menu summary {
+    list-style: none;
+  }
+  .menu summary::-webkit-details-marker {
+    display: none;
+  }
+  .burger,
+  .burger::before,
+  .burger::after {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: currentColor;
+    transition: transform 200ms var(--ease-out-strong), opacity 150ms ease-out;
+  }
+  .burger {
+    position: relative;
+  }
+  .burger::before,
+  .burger::after {
+    content: '';
+    position: absolute;
+    left: 0;
+  }
+  .burger::before {
+    transform: translateY(-7px);
+  }
+  .burger::after {
+    transform: translateY(7px);
+  }
+  .menu[open] .burger {
+    background: transparent;
+  }
+  .menu[open] .burger::before {
+    transform: rotate(45deg);
+  }
+  .menu[open] .burger::after {
+    transform: rotate(-45deg);
+  }
+  .menu[open] .menu-panel {
+    animation: menu-in 200ms var(--ease-out-strong);
+  }
+  @keyframes menu-in {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .burger,
+    .burger::before,
+    .burger::after {
+      transition: none;
+    }
+    .menu[open] .menu-panel {
+      animation: none;
+    }
+  }
+</style>

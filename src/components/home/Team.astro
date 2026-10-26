@@ -1,0 +1,38 @@
+---
+import { Image } from 'astro:assets';
+import equipe from '../../assets/images/equipe.jpg';
+import { TEAM, TEAM_INTRO } from '../../data/home';
+---
+
+<section aria-labelledby="team-title" class="py-16 md:py-24">
+  <!-- The photo's left side is an empty studio backdrop: on large screens the intro sits there. -->
+  <div class="wrap">
+    <div class="relative">
+      <div class="flex flex-col gap-5 pb-8 lg:absolute lg:inset-y-0 lg:left-0 lg:w-[44%] lg:justify-center lg:pb-0 lg:pl-12 z-10">
+        <h2 id="team-title" class="display text-[clamp(1.8rem,3.2vw,2.8rem)]">{TEAM_INTRO.title}</h2>
+        <p class="max-w-[42ch] text-lg leading-relaxed text-ink-soft">{TEAM_INTRO.text}</p>
+      </div>
+      <Image
+        src={equipe}
+        alt="Dylan, Théo et Margot, l’équipe des Drones Lyonnais, avec Pop, leur chien samoyède"
+        widths={[640, 960, 1280, 1920]}
+        sizes="(min-width: 1280px) 1168px, 92vw"
+        class="aspect-[2125/762] w-full object-cover max-lg:aspect-[16/10] max-lg:object-[80%_50%]"
+      />
+    </div>
+  </div>
+
+  <ul class="wrap mt-12 grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
+    {
+      TEAM.map((member) => (
+        <li class="flex flex-col">
+          <Image src={member.photo} alt="" width={96} height={94} densities={[1, 2]} class="mb-5 size-20 object-contain" />
+          <h3 class="text-xl font-bold [font-stretch:112%]">{member.name}</h3>
+          <p class="mt-1 font-medium text-gold-deep">{member.role}</p>
+          <p class="mt-3 leading-relaxed text-ink-soft">{member.bio}</p>
+          <p class="mt-4 border-t border-line pt-3 text-sm leading-relaxed text-muted">{member.skills.join(', ')}</p>
+        </li>
+      ))
+    }
+  </ul>
+</section>

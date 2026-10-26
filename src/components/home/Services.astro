@@ -1,0 +1,67 @@
+---
+import Square from '../ui/Square.astro';
+import Button from '../ui/Button.astro';
+import { SERVICE_GROUPS } from '../../data/home';
+import { ACTIVITIES } from '../../data/site';
+---
+
+<section aria-labelledby="services-title" class="bg-mist">
+  <div class="wrap grid gap-12 py-16 md:py-24 lg:grid-cols-12 lg:gap-10">
+    <div class="flex flex-col items-start gap-6 lg:col-span-4 lg:sticky lg:top-8 lg:self-start">
+      <h2 id="services-title" class="display flex items-start gap-4 text-[clamp(1.8rem,3vw,2.5rem)]">
+        <Square color={ACTIVITIES.prestations.color} class="mt-[0.18em] size-[0.42em]" />
+        Nos prestations par drone
+      </h2>
+      <p class="max-w-[40ch] text-lg leading-relaxed text-ink-soft">
+        De l’inspection d’un ouvrage au film d’entreprise, nous préparons, pilotons et livrons chaque mission nous-mêmes.
+      </p>
+      <Button href={ACTIVITIES.prestations.href} variant="outline">Voir toutes les prestations</Button>
+    </div>
+
+    <div class="grid gap-12 md:grid-cols-2 md:gap-10 lg:col-span-8">
+      {
+        SERVICE_GROUPS.map((group) => (
+          <div>
+            <h3 class="text-xl font-bold [font-stretch:112%]">{group.title}</h3>
+            <p class="mt-2 mb-5 max-w-[38ch] text-muted">{group.description}</p>
+            <ul class="border-t border-ink/15">
+              {group.services.map((service) => (
+                <li class="border-b border-ink/15">
+                  <a href={service.href} class="service-link flex items-center justify-between gap-4 py-3.5 font-medium">
+                    {service.label}
+                    <svg class="chevron size-4 shrink-0" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.6" />
+                    </svg>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .chevron {
+    color: var(--color-muted);
+    transition:
+      transform 200ms var(--ease-out-strong),
+      color 200ms ease-out;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .service-link:hover .chevron {
+      color: var(--color-prestations);
+      transform: translateX(3px);
+    }
+    .service-link:hover {
+      color: var(--color-prestations);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .chevron {
+      transition: none;
+    }
+  }
+</style>
