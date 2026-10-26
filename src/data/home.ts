@@ -1,6 +1,7 @@
 // Homepage content. Copy taken from the current homepage and service pages,
 // reorganised; links point to the URLs already indexed on the WordPress site.
 import type { ImageMetadata } from 'astro';
+import { servicesOf, type Service } from './services';
 import dylan from '../assets/team/dylan.webp';
 import theo from '../assets/team/theo.webp';
 import margot from '../assets/team/margot.webp';
@@ -21,59 +22,21 @@ export const FACTS = [
   { value: '1\u00a0000+', label: 'missions réalisées' },
 ];
 
-/**
- * How the drone camera shows a service on the homepage viewer:
- * thermal (heat map), survey (line drawing of the terrain), mesh (3D model wireframe),
- * detect (inspection boxes), lowlight (confined spaces), timelapse, cine (letterbox),
- * live (broadcast), grade (colour grading split).
- */
-export type Sensor = 'thermal' | 'survey' | 'mesh' | 'detect' | 'lowlight' | 'timelapse' | 'cine' | 'live' | 'grade';
-
-export interface Service {
-  label: string;
-  href: string;
-  /** Photo in src/assets/services */
-  image: string;
-  sensor: Sensor;
-}
-
 export interface ServiceGroup {
   title: string;
   description: string;
   services: Service[];
 }
 
-export const SERVICE_GROUPS: ServiceGroup[] = [
-  {
-    title: 'Inspection, mesure et BTP',
-    description: 'Des données fiables sur vos ouvrages, sans échafaudage ni nacelle.',
-    services: [
-      { label: 'Inspection thermique', href: '/inspection-thermique-par-drone-2/', image: 'inspection-thermique.jpg', sensor: 'thermal' },
-      { label: 'Inspection visuelle', href: '/inspection-visuelle-par-drone/', image: 'inspection-visuelle.jpg', sensor: 'detect' },
-      { label: 'Inspection en milieu confiné', href: '/inspection-en-milieu-confine-par-drone/', image: 'milieu-confine.jpg', sensor: 'lowlight' },
-      { label: 'Topographie', href: '/topographie-par-drone-2/', image: 'topographie.jpg', sensor: 'survey' },
-      { label: 'Modélisation 3D et photogrammétrie', href: '/modelisation-3d-drone/', image: 'modelisation-3d.jpg', sensor: 'mesh' },
-      { label: 'Bureau d’étude', href: '/bureau-detude-drone/', image: 'bureau-etude.jpg', sensor: 'survey' },
-      { label: 'Suivi de chantier en timelapse', href: '/suivi-de-chantier-timelapse/', image: 'suivi-chantier.jpg', sensor: 'timelapse' },
-      { label: 'Nettoyage par drone', href: '/nettoyage-par-drone/', image: 'nettoyage.jpg', sensor: 'detect' },
-      { label: 'Démoussage de toiture', href: '/demoussage-par-drone/', image: 'demoussage.jpg', sensor: 'detect' },
-    ],
-  },
-  {
-    title: 'Image et audiovisuel',
-    description: 'Du plan aérien cinéma au film d’entreprise, tourné et monté par la même équipe.',
-    services: [
-      { label: 'Prises de vues aériennes cinéma', href: '/prises-de-vues-aeriennes-cinema-drone-lyon/', image: 'cinema.jpg', sensor: 'cine' },
-      { label: 'Plan-séquence immersif en FPV', href: '/tournage-immersif-plan-sequence-fpv-lyon/', image: 'fpv.jpg', sensor: 'cine' },
-      { label: 'Film d’entreprise', href: '/film-entreprise-corporate-lyon/', image: 'film-entreprise.jpg', sensor: 'cine' },
-      { label: 'Live streaming et captation', href: '/live-streaming-captation-evenementielle-lyon/', image: 'live.jpg', sensor: 'live' },
-      { label: 'Interview filmée', href: '/production-audiovisuelle-interview-lyon/', image: 'interview.jpg', sensor: 'cine' },
-      { label: 'Cadreur', href: '/production-audiovisuelle-cadreur-lyon/', image: 'cadreur.jpg', sensor: 'cine' },
-      { label: 'Post-production', href: '/postproduction-audiovisuelle-lyon/', image: 'post-production.jpg', sensor: 'grade' },
-      { label: 'Mariage en photo et vidéo', href: '/mariage-photo-video-drone-lyon/', image: 'mariage.jpg', sensor: 'cine' },
-    ],
-  },
-];
+// The homepage screen lists the services by family (data/services.ts).
+export const SERVICE_GROUPS: ServiceGroup[] = (['technique', 'artistique'] as const).map((family) => ({
+  title: family === 'technique' ? 'Inspection, mesure et BTP' : 'Image et audiovisuel',
+  description:
+    family === 'technique'
+      ? 'Des données fiables sur vos ouvrages, sans échafaudage ni nacelle.'
+      : 'Du plan aérien cinéma au film d’entreprise, tourné et monté par la même équipe.',
+  services: servicesOf(family),
+}));
 
 export const TEAM_INTRO = {
   title: 'Une petite équipe, des expertises complémentaires',

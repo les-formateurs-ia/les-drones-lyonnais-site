@@ -9,14 +9,16 @@ import { NAV, SITE } from '../../data/site';
 interface Props {
   /** Transparent over a full-screen hero, turning solid once the hero is scrolled past. */
   overlay?: boolean;
+  /** Hide the menu while over the hero (homepage: the hero is the menu). */
+  compact?: boolean;
 }
-const { overlay = false } = Astro.props;
+const { overlay = false, compact = false } = Astro.props;
 
 // The shop's square is black: it follows the text colour so it shows on photos too.
 const squareColor = (id: string, color: string) => (id === 'boutique' ? 'currentColor' : color);
 ---
 
-<header class="site-header" data-overlay={overlay || undefined}>
+<header class="site-header" data-overlay={overlay || undefined} data-compact={(overlay && compact) || undefined}>
   <div class="header-inner wrap flex h-[72px] items-center justify-between gap-6">
     <a href="/" class="logo relative block h-9 shrink-0" aria-label={`${SITE.name}, accueil`}>
       <Image src={overlay ? logoLight : logoDark} alt="" height={36} densities={[1, 2]} loading="eager" class="h-9 w-auto" />
@@ -101,12 +103,12 @@ const squareColor = (id: string, color: string) => (id === 'boutique' ? 'current
   }
   /* Over the hero the four activities are already the whole screen: the menu waits
      until the header turns into a bar, then fades in. */
-  .site-header[data-overlay] .main-nav {
+  .site-header[data-compact] .main-nav {
     opacity: 0;
     visibility: hidden;
   }
   @supports (animation-timeline: scroll()) {
-    .site-header[data-overlay] .main-nav {
+    .site-header[data-compact] .main-nav {
       animation-name: nav-in;
       animation-timing-function: linear;
       animation-fill-mode: both;

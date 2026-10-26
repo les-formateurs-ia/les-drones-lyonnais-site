@@ -5,6 +5,15 @@ import Button from '../ui/Button.astro';
 import Square from '../ui/Square.astro';
 import { NAV, SITE } from '../../data/site';
 
+interface Props {
+  title?: string;
+  text?: string;
+}
+const {
+  title = 'Un projet de tournage, d’inspection ou de formation ?',
+  text = 'Décrivez-nous votre besoin : nous revenons vers vous avec une proposition et un devis détaillé.',
+} = Astro.props;
+
 // Black disappears on black: the shop's square turns white here.
 const squareColor = (id: string, color: string) => (id === 'boutique' ? 'var(--color-paper)' : color);
 ---
@@ -27,9 +36,9 @@ const squareColor = (id: string, color: string) => (id === 'boutique' ? 'var(--c
 
   <div class="wrap section-pad grid gap-10 lg:grid-cols-12 lg:items-end">
     <div class="lg:col-span-7" data-reveal>
-      <h2 id="cta-title" class="display text-[clamp(2.2rem,4.6vw,3.8rem)]">Un projet de tournage, d’inspection ou de formation ?</h2>
+      <h2 id="cta-title" class="display text-[clamp(2.2rem,4.6vw,3.8rem)]">{title}</h2>
       <p class="mt-6 max-w-[48ch] text-lg leading-relaxed text-white/70">
-        Décrivez-nous votre besoin : nous revenons vers vous avec une proposition et un devis détaillé.
+        {text}
       </p>
     </div>
     <div class="flex flex-col gap-6 lg:col-span-5 lg:items-end" data-reveal style={{ '--i': 2 }}>

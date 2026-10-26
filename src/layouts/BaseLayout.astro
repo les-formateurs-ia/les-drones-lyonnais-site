@@ -11,9 +11,11 @@ interface Props {
   noindex?: boolean;
   /** Transparent header over a full-screen hero. */
   headerOverlay?: boolean;
+  /** Hide the header menu while over the hero. */
+  headerCompact?: boolean;
 }
 
-const { title, description, image, noindex, headerOverlay = false } = Astro.props;
+const { title, description, image, noindex, headerOverlay = false, headerCompact = false } = Astro.props;
 ---
 
 <!doctype html>
@@ -31,7 +33,7 @@ const { title, description, image, noindex, headerOverlay = false } = Astro.prop
   </head>
   <body>
     <a href="#contenu" class="sr-only z-50 bg-ink px-4 py-3 text-white focus:not-sr-only focus:fixed focus:top-3 focus:left-3">Aller au contenu</a>
-    <Header overlay={headerOverlay} />
+    <Header overlay={headerOverlay} compact={headerCompact} />
     <main id="contenu">
       <slot />
     </main>

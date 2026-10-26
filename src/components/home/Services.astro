@@ -3,44 +3,17 @@
 // (or the one you scroll past) through the camera mode that service uses — heat map
 // for thermal inspection, line survey for topography, wireframe for 3D models,
 // letterbox for cinema… Every row links to its service page.
-import { getImage } from 'astro:assets';
-import type { ImageMetadata } from 'astro';
+import { servicePhoto } from '../../lib/service-photo';
+import SensorFilters from '../ui/SensorFilters.astro';
 import SectionHeader from '../ui/SectionHeader.astro';
 import Button from '../ui/Button.astro';
-import { SERVICE_GROUPS, type Sensor } from '../../data/home';
+import { SERVICE_GROUPS } from '../../data/home';
+import { SENSOR_LABEL } from '../../data/services';
 import { ACTIVITIES } from '../../data/site';
 
-const files = import.meta.glob<{ default: ImageMetadata }>('../../assets/services/*.jpg', { eager: true });
-const photo = (name: string) => {
-  const mod = files[`../../assets/services/${name}`];
-  if (!mod) throw new Error(`Missing service photo: src/assets/services/${name}`);
-  return mod.default;
-};
-
-const SENSOR_LABEL: Record<Sensor, string> = {
-  thermal: 'Caméra thermique',
-  survey: 'Relevé topographique',
-  mesh: 'Maillage 3D',
-  detect: 'Inspection visuelle',
-  lowlight: 'Basse lumière',
-  timelapse: 'Timelapse',
-  cine: 'Cinéma 4K',
-  live: 'Direct multicam',
-  grade: 'Étalonnage',
-};
-
-// Every photo is cropped to the screen's 16:10 at build time, so all shots share the
-// exact same dimensions whatever the source.
-const SIZES = [640, 960, 1280];
 const services = SERVICE_GROUPS.flatMap((g) => g.services);
-const shots = await Promise.all(
-  services.map(async (s) => {
-    const crops = await Promise.all(
-      SIZES.map((w) => getImage({ src: photo(s.image), width: w, height: Math.round((w * 10) / 16), fit: 'cover', format: 'webp' })),
-    );
-    return { ...s, src: crops[1].src, srcset: crops.map((c, i) => `${c.src} ${SIZES[i]}w`).join(', ') };
-  }),
-);
+// Same 16:10 crops as everywhere else on the site.
+const shots = await Promise.all(services.map(async (s) => ({ ...s, ...(await servicePhoto(s.image)) })));
 const first = shots[0];
 let index = 0;
 ---
@@ -124,26 +97,7 @@ let index = 0;
     </div>
   </div>
 
-  <!-- Camera modes as SVG filters: a thermal colour map and an edge-detected survey. -->
-  <svg width="0" height="0" class="absolute" aria-hidden="true" focusable="false">
-    <filter id="sensor-thermal" color-interpolation-filters="sRGB">
-      <feColorMatrix type="saturate" values="0" />
-      <feComponentTransfer>
-        <feFuncR type="table" tableValues="0.02 0.25 0.7 0.95 1 1" />
-        <feFuncG type="table" tableValues="0.01 0.02 0.12 0.45 0.82 1" />
-        <feFuncB type="table" tableValues="0.12 0.45 0.55 0.15 0.1 0.85" />
-      </feComponentTransfer>
-    </filter>
-    <filter id="sensor-survey" color-interpolation-filters="sRGB">
-      <feColorMatrix type="saturate" values="0" />
-      <feConvolveMatrix order="3" kernelMatrix="-1 -1 -1 -1 8 -1 -1 -1 -1" preserveAlpha="true" />
-      <feComponentTransfer>
-        <feFuncR type="linear" slope="5" intercept="0" />
-        <feFuncG type="linear" slope="3.6" intercept="0" />
-        <feFuncB type="linear" slope="1.8" intercept="0" />
-      </feComponentTransfer>
-    </filter>
-  </svg>
+  <SensorFilters />
 </section>
 
 <style>

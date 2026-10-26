@@ -87,7 +87,13 @@ Skills: `ldl-art-direction` (identity), `seo-production`, `visual-qa`,
 `astro-cloudflare`, plus the design-engineering skills (`emil-design-eng`, `animate`,
 `review-animations`, `frontend-design`…).
 
-## Current milestone
+## Pages built
 
-Homepage done as the proof of concept. Next: inventory of the current site and redirect
-plan, then services pages, training, shop, rental.
+- `/` homepage (proof of concept).
+- `/prestations/` services hub: technical / artistic choice (hero with Dylan's cut-out),
+  both catalogues (identical 16:10 cards, black and white until pointed at), five-step
+  method, quote request. Services live in src/data/services.ts (single source for the
+  homepage screen and this page); photos are cropped by lib/service-photo.ts.
+
+Next: the 18 service pages (URLs listed in data/services.ts), then training, shop,
+rental, and the redirect plan.

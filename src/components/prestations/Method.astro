@@ -1,0 +1,160 @@
+---
+// The five steps of a mission, from the current page. A real sequence, so numbered.
+// A gold flight line runs through the steps and draws itself as the section scrolls in;
+// each step lights up when the line reaches it.
+import SectionHeader from '../ui/SectionHeader.astro';
+import { METHOD } from '../../data/services';
+---
+
+<section id="methode" aria-labelledby="method-title" class="method section-pad scroll-mt-16 bg-paper">
+  <div class="wrap">
+    <SectionHeader id="method-title" title="Notre méthode, de la demande à la livraison">
+      <p class="max-w-[44ch]">Chaque mission suit les mêmes cinq étapes, de l’analyse de votre besoin à la remise des livrables.</p>
+    </SectionHeader>
+
+    <ol class="steps" style={{ '--count': METHOD.length }}>
+      {
+        METHOD.map((step, i) => (
+          <li class="step" style={{ '--i': i }}>
+            <span class="node" aria-hidden="true" />
+            <span class="num hud-text">Étape {String(i + 1).padStart(2, '0')}</span>
+            <h3 class="step-title">{step.title}</h3>
+            <p class="step-text">{step.text}</p>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+</section>
+
+<style>
+  .steps {
+    --progress: 1;
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(var(--count), 1fr);
+    gap: 32px;
+    margin-top: 72px;
+    padding-top: 40px;
+  }
+  /* The flight line: grey track, gold progress. */
+  .steps::before,
+  .steps::after {
+    content: '';
+    position: absolute;
+    top: 7px;
+    left: 0;
+    right: 0;
+    height: 2px;
+  }
+  .steps::before {
+    background: var(--color-line);
+  }
+  .steps::after {
+    background: var(--color-gold);
+    transform-origin: left;
+    transform: scaleX(var(--progress));
+  }
+  .step {
+    position: relative;
+  }
+  .node {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    width: 16px;
+    height: 16px;
+    background: var(--color-paper);
+    border: 2px solid var(--color-gold);
+    z-index: 1;
+  }
+  .num {
+    color: var(--color-gold-deep);
+  }
+  .step-title {
+    margin-top: 8px;
+    font-size: 1.35rem;
+    font-weight: 700;
+    font-stretch: 112%;
+    line-height: 1.2;
+  }
+  .step-text {
+    margin-top: 8px;
+    max-width: 30ch;
+    line-height: 1.55;
+    color: var(--color-ink-soft);
+  }
+
+  @media (max-width: 1023px) {
+    .steps {
+      grid-template-columns: 1fr;
+      gap: 36px;
+      padding-top: 0;
+      padding-left: 40px;
+    }
+    .steps::before,
+    .steps::after {
+      top: 0;
+      bottom: 0;
+      left: 7px;
+      right: auto;
+      width: 2px;
+      height: auto;
+    }
+    .steps::after {
+      transform-origin: top;
+      transform: scaleY(var(--progress));
+    }
+    .node {
+      top: 4px;
+      left: -40px;
+    }
+  }
+
+  /* The line draws itself while the steps cross the screen; nodes fill as it passes. */
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .steps {
+        view-timeline: --steps block;
+      }
+      .steps::after {
+        animation-name: draw-x;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: --steps;
+        animation-range: entry 60% cover 60%;
+      }
+      .node {
+        animation-name: node-on;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: --steps;
+        animation-range: entry calc(60% + var(--i) * 10%) entry calc(64% + var(--i) * 10%);
+      }
+      @media (max-width: 1023px) {
+        .steps::after {
+          animation-name: draw-y;
+          animation-range: entry 20% cover 70%;
+        }
+        .node {
+          animation-range: entry calc(20% + var(--i) * 12%) entry calc(24% + var(--i) * 12%);
+        }
+      }
+    }
+  }
+  @keyframes draw-x {
+    from {
+      transform: scaleX(0);
+    }
+  }
+  @keyframes draw-y {
+    from {
+      transform: scaleY(0);
+    }
+  }
+  @keyframes node-on {
+    to {
+      background: var(--color-gold);
+    }
+  }
+</style>
