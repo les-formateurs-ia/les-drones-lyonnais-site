@@ -3,7 +3,6 @@
 // viewfinder marks. When a looping video of the member exists in public/team/ (made by
 // `npm run videos`), it plays muted in the disc while the portrait is on screen; the
 // photo shows meanwhile, and stays without video or with reduced motion.
-// Under the pointer (--px/--py, set by the page) the disc tilts slightly in 3D.
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { Image } from 'astro:assets';
@@ -47,27 +46,23 @@ const sources = [
 </div>
 
 <style>
+  /* Kept deliberately simple so every browser clips the same way (Safari leaks videos
+     out of rounded, transformed boxes): no 3D tilt, no transform on the picture — it is
+     enlarged by its box (--fit) and the disc is cut by a mask. The gold ring is drawn
+     over the picture. */
   .portrait {
-    --px: 0;
-    --py: 0;
+    position: relative;
     aspect-ratio: 1;
     padding: 10%;
-    perspective: 900px;
   }
   .disc {
     position: relative;
     height: 100%;
     overflow: hidden;
     border-radius: 50%;
-    background: radial-gradient(circle at calc(50% + var(--px) * 18%) calc(32% + var(--py) * 14%), #3a3a3a, #0d0d0d 68%);
-    /* clip-path clips reliably even under the 3D tilt (overflow alone can leak in Safari). */
-    clip-path: circle(50%);
-    transform: rotateY(calc(var(--px) * 9deg)) rotateX(calc(var(--py) * -9deg));
-    transition: transform 600ms var(--ease-out-strong);
-  }
-  /* The rings are drawn around and over the picture, so nothing can cross the gold line. */
-  .portrait {
-    position: relative;
+    background: radial-gradient(circle at 50% 32%, #3a3a3a, #0d0d0d 68%);
+    -webkit-mask-image: radial-gradient(circle closest-side, #000 99.4%, transparent 100%);
+    mask-image: radial-gradient(circle closest-side, #000 99.4%, transparent 100%);
   }
   .rings {
     position: absolute;
@@ -79,38 +74,25 @@ const sources = [
       inset 0 0 0 2px var(--color-gold),
       0 0 0 5px var(--color-paper),
       0 0 0 6px rgb(175 133 74 / 0.35);
-    transform: rotateY(calc(var(--px) * 9deg)) rotateX(calc(var(--py) * -9deg));
-    transition: transform 600ms var(--ease-out-strong);
   }
   .shot {
-    width: 100%;
-    height: 100%;
+    position: absolute;
+    top: calc(50% - var(--fit, 1) * 50%);
+    left: calc(50% - var(--fit, 1) * 50%);
+    width: calc(var(--fit, 1) * 100%);
+    height: calc(var(--fit, 1) * 100%);
+    max-width: none;
     object-fit: cover;
-    transform: translate(calc(var(--px) * 10px), calc(var(--py) * 7px)) scale(var(--fit, 1.05));
-    transition: transform 600ms var(--ease-out-strong);
   }
   /* The video lies over the photo and fades in once it actually plays. */
   .clip {
-    position: absolute;
-    inset: 0;
     opacity: 0;
-    transition:
-      opacity 500ms ease,
-      transform 600ms var(--ease-out-strong);
+    transition: opacity 500ms ease;
   }
   .clip:global(.is-playing) {
     opacity: 1;
   }
   @media (prefers-reduced-motion: reduce) {
-    .disc,
-    .rings {
-      transform: none;
-      transition: none;
-    }
-    .shot {
-      transform: scale(var(--fit, 1.05));
-      transition: none;
-    }
     .clip {
       display: none;
     }
