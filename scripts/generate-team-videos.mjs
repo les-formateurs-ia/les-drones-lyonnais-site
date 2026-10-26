@@ -18,9 +18,9 @@ const SIZE = 720;
 const STILL =
   'Static camera, locked-off shot, no zoom, no camera movement. Same framing, same lighting, same dark background. Photorealistic, natural and subtle.';
 const PEOPLE = {
-  dylan: 'Living portrait of this smiling young man. He stays in place, breathes calmly, blinks naturally, smiles warmly and moves his head very slightly.',
+  dylan: 'Living portrait of this smiling young man. He keeps his eyes open and looks at the camera the whole time, keeps a natural friendly smile, blinks once quickly, breathes calmly and moves his head very slightly. Minimal, realistic motion.',
   theo: 'Living portrait of this smiling young man. He keeps his eyes open and looks at the camera the whole time, blinks once quickly, breathes calmly, keeps a warm smile and moves his head very slightly.',
-  margot: 'Living portrait of this smiling young woman. She stays in place, breathes calmly, blinks naturally, smiles warmly and moves her head very slightly.',
+  margot: 'Living portrait of this smiling young woman. She keeps her eyes open and looks at the camera, keeps her natural smile, blinks once quickly, breathes calmly and moves her head very slightly. Minimal, realistic motion.',
   pop: 'Living portrait of this happy white samoyed dog. It stays in place, pants gently with its tongue out, blinks, and its ears twitch slightly.',
 };
 const NEGATIVE = 'closed eyes, sleepy, camera movement, zoom, pan, talking, morphing, distorted face, extra limbs, text, watermark, blur';

@@ -74,7 +74,7 @@ export const TEAM: Member[] = [
     skills: ['Réalisation', 'Cadrage', 'Drone cinéma', 'FPV', 'Montage vidéo'],
     photo: theo,
     video: 'theo',
-    cutRadius: 0.43,
+    cutRadius: 0.445,
   },
   {
     name: 'Margot',
