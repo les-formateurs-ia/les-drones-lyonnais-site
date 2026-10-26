@@ -70,7 +70,10 @@ public/            fonts, favicon, robots.txt
   raw clips in media-src/team/<name>.mp4 (gitignored) → `npm run videos` (ffmpeg-static,
   720×720 square, WebM + MP4, no sound; --boomerang for a forward/back loop) →
   public/team/. Portrait.astro uses them only if the files exist and plays them only
-  while on screen. Illustrated SVG avatars and WebGL-warped photos were tried and
+  while on screen. Clips are generated from the avatars with Runware (Kling 2.5 Turbo
+  Pro, same image as first and last frame for a seamless loop, ~$0.35 each):
+  `node --env-file=.env scripts/generate-team-videos.mjs <name>` (RUNWARE_API_KEY in
+  .env). Check frames before encoding; regenerate a take that looks off. Illustrated SVG avatars and WebGL-warped photos were tried and
   rejected by the client. Illustrated or traced avatars were tried
   and rejected by the client: keep real photos.
 - Coverage: pinned map of France (src/data/france-map.ts, IGN Admin Express, Licence
