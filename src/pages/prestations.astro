@@ -3,11 +3,15 @@
 // technical or artistic choice, both catalogues, the five-step method, quote request.
 import BaseLayout from '../layouts/BaseLayout.astro';
 import JsonLd from '../components/seo/JsonLd.astro';
-import PrestaHero from '../components/prestations/PrestaHero.astro';
+import DeckHero, { type DeckFamily } from '../components/ui/DeckHero.astro';
+import { servicePhoto } from '../lib/service-photo';
+import dylan from '../assets/team/dylan-pied.webp';
+import theo from '../assets/team/theo-pied.webp';
 import ServiceCatalog from '../components/prestations/ServiceCatalog.astro';
 import Method from '../components/prestations/Method.astro';
 import FinalCta from '../components/home/FinalCta.astro';
-import { SERVICES } from '../data/services';
+import { SERVICES, FAMILIES, PROMISES, SENSOR_LABEL, servicesOf } from '../data/services';
+import { ACTIVITIES } from '../data/site';
 import { SITE } from '../data/site';
 
 // Title and description keep the intent of the current WordPress page.
@@ -15,6 +19,18 @@ const title = 'Prestations drone et audiovisuelles à Lyon | Les Drones Lyonnais
 const description =
   'Inspection, modélisation 3D, prises de vues aériennes et production vidéo : découvrez nos prestations à Lyon et en France. Présentez-nous votre projet.';
 const pageUrl = `${SITE.url}/prestations/`;
+
+const families: DeckFamily[] = await Promise.all(
+  (['technique', 'artistique'] as const).map(async (id) => ({
+    label: id === 'technique' ? 'Technique' : 'Artistique',
+    guide: id === 'technique' ? { photo: dylan, alt: 'Dylan, fondateur des Drones Lyonnais' } : { photo: theo, alt: 'Théo, responsable audiovisuel et formation' },
+    title: FAMILIES[id].title,
+    tagline: FAMILIES[id].tagline,
+    cards: await Promise.all(
+      servicesOf(id).map(async (s) => ({ href: s.href, label: s.label, summary: s.summary, tag: SENSOR_LABEL[s.sensor], photo: await servicePhoto(s.image, 4 / 5) })),
+    ),
+  })),
+);
 
 const structuredData = [
   {
@@ -41,7 +57,15 @@ const structuredData = [
 
 <BaseLayout title={title} description={description} headerOverlay>
   {structuredData.map((data) => <JsonLd slot="head" data={data} />)}
-  <PrestaHero />
+  <DeckHero
+    crumb="Prestations"
+    title="Prestations drone et audiovisuelles"
+    lead="L’art de capturer l’essentiel, à Lyon et partout en France."
+    color={ACTIVITIES.prestations.color}
+    noun="prestations"
+    families={families}
+    promises={PROMISES}
+  />
   <ServiceCatalog family="technique" />
   <ServiceCatalog family="artistique" dark />
   <Method />

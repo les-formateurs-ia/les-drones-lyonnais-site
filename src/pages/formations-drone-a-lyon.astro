@@ -1,0 +1,76 @@
+---
+// /formations-drone-a-lyon/ — the training hub, rebuilt from the current page: technical
+// or artistic choice (same deck as /prestations/), both paths from Open to
+// specialisations, how a training goes, funding and contact.
+import BaseLayout from '../layouts/BaseLayout.astro';
+import JsonLd from '../components/seo/JsonLd.astro';
+import DeckHero, { type DeckFamily } from '../components/ui/DeckHero.astro';
+import FormationCatalog from '../components/formations/FormationCatalog.astro';
+import Method from '../components/prestations/Method.astro';
+import FinalCta from '../components/home/FinalCta.astro';
+import { servicePhoto } from '../lib/service-photo';
+import dylan from '../assets/team/dylan-pied.webp';
+import theo from '../assets/team/theo-pied.webp';
+import { FORMATIONS, FORMATION_FAMILIES, FORMATION_PROMISES, FORMATION_STEPS, LEVEL_LABEL, formationsOf } from '../data/formations';
+import { ACTIVITIES, SITE } from '../data/site';
+
+// Title and description keep the intent of the current WordPress page.
+const title = 'Formation drone à Lyon : BAPD, CATS et métiers | Les Drones Lyonnais';
+const description =
+  'Formez-vous au pilotage de drone à Lyon : BAPD, CATS et spécialisations techniques ou audiovisuelles. Formation drone finançable par le CPF.';
+const pageUrl = `${SITE.url}/formations-drone-a-lyon/`;
+
+const families: DeckFamily[] = await Promise.all(
+  (['technique', 'artistique'] as const).map(async (id) => ({
+    label: id === 'technique' ? 'Technique' : 'Artistique',
+    guide: id === 'technique' ? { photo: dylan, alt: 'Dylan, fondateur des Drones Lyonnais' } : { photo: theo, alt: 'Théo, responsable audiovisuel et formation' },
+    title: FORMATION_FAMILIES[id].title,
+    tagline: FORMATION_FAMILIES[id].tagline,
+    cards: await Promise.all(
+      formationsOf(id).map(async (f) => ({
+        href: `#${f.id}`,
+        label: f.title,
+        summary: `${f.scope}. ${f.summary}`,
+        tag: `${LEVEL_LABEL[f.level]}, ${f.duration}`,
+        photo: await servicePhoto(f.image, 4 / 5),
+      })),
+    ),
+  })),
+);
+
+const structuredData = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Accueil', item: `${SITE.url}/` },
+      { '@type': 'ListItem', position: 2, name: 'Formations', item: pageUrl },
+    ],
+  },
+  ...FORMATIONS.map((f) => ({
+    '@context': 'https://schema.org',
+    '@type': 'Course',
+    name: `${f.title}, ${f.scope}`,
+    description: f.summary,
+    url: `${pageUrl}#${f.id}`,
+    provider: { '@type': 'Organization', name: SITE.name, url: `${SITE.url}/` },
+  })),
+];
+---
+
+<BaseLayout title={title} description={description} headerOverlay>
+  {structuredData.map((data) => <JsonLd slot="head" data={data} />)}
+  <DeckHero
+    crumb="Formations"
+    title="Formations drone à Lyon"
+    lead="Devenez télépilote professionnel, avec des experts du terrain."
+    color={ACTIVITIES.formations.color}
+    noun="formations"
+    families={families}
+    promises={FORMATION_PROMISES}
+  />
+  <FormationCatalog family="technique" />
+  <FormationCatalog family="artistique" dark />
+  <Method title="Comment se déroule une formation" intro="De la première prise de contact à la certification, un parcours encadré par des télépilotes en activité." steps={FORMATION_STEPS} />
+  <FinalCta title="Une formation, un financement, une date ?" text="Dites-nous où vous en êtes : nous vous orientons vers la bonne formation et le financement adapté, CPF compris." />
+</BaseLayout>

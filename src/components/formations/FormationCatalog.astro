@@ -1,0 +1,193 @@
+---
+// One family of trainings, as a path: certification for the Open category, then the
+// Specific category, then the specialisations. Each training is a card with its
+// duration in large type; the line on the left shows the progression.
+import SectionHeader from '../ui/SectionHeader.astro';
+import Button from '../ui/Button.astro';
+import { FORMATION_FAMILIES, LEVEL_LABEL, formationsOf, type FormationFamily, type FormationLevel } from '../../data/formations';
+import { ACTIVITIES, SITE } from '../../data/site';
+
+interface Props {
+  family: FormationFamily;
+  dark?: boolean;
+}
+const { family, dark = false } = Astro.props;
+const info = FORMATION_FAMILIES[family];
+const levels: FormationLevel[] = ['open', 'specifique', 'specialisation'];
+const byLevel = levels.map((level) => ({ level, items: formationsOf(family).filter((f) => f.level === level) }));
+---
+
+<section id={family} aria-labelledby={`${family}-title`} class:list={['formations section-pad scroll-mt-16', dark ? 'bg-ink text-white' : 'bg-paper']}>
+  <div class="wrap">
+    <SectionHeader id={`${family}-title`} title={info.title} color={ACTIVITIES.formations.color} dark={dark}>
+      <p class:list={['font-semibold', dark ? 'text-white' : 'text-ink']}>{info.tagline}, {info.certification}</p>
+      <p class="max-w-[46ch]">{info.description}</p>
+    </SectionHeader>
+
+    <ol class="path mt-14 lg:mt-20">
+      {
+        byLevel.map(({ level, items }, li) => (
+          <li class="level" data-reveal style={{ '--i': li }}>
+            <p class="level-label hud-text">
+              <span class="level-dot" aria-hidden="true" />
+              {LEVEL_LABEL[level]}
+            </p>
+            <ul class:list={['cards', items.length > 1 && 'cards-many']}>
+              {items.map((f) => (
+                <li class:list={['card', dark && 'card-dark']} id={f.id}>
+                  <p class="duration">{f.duration}</p>
+                  <h3 class="title">{f.title}</h3>
+                  <p class="scope">{f.scope}</p>
+                  <p class="summary">{f.summary}</p>
+                  <ul class="facts">
+                    {f.facts.map((fact) => (
+                      <li>{fact}</li>
+                    ))}
+                  </ul>
+                  <Button href={`${SITE.contactPath}?formation=${f.id}`} variant={dark ? 'outline-light' : 'outline'} size="sm" class="mt-auto self-start">
+                    Demander le programme
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+</section>
+
+<style>
+  .path {
+    position: relative;
+    display: grid;
+    gap: 48px;
+    padding-left: 40px;
+  }
+  /* The progression line, Open → Spécifique → spécialisations. */
+  .path::before {
+    content: '';
+    position: absolute;
+    top: 8px;
+    bottom: 8px;
+    left: 7px;
+    width: 2px;
+    background: linear-gradient(var(--color-formations), var(--color-gold));
+    opacity: 0.6;
+  }
+  .level-label {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    color: var(--color-gold-deep);
+  }
+  .formations.bg-ink .level-label {
+    color: var(--color-gold);
+  }
+  .level-dot {
+    position: absolute;
+    left: -40px;
+    width: 16px;
+    height: 16px;
+    background: var(--color-paper);
+    border: 2px solid var(--color-formations);
+  }
+  .formations.bg-ink .level-dot {
+    background: var(--color-ink);
+  }
+  .cards {
+    display: grid;
+    gap: 16px;
+  }
+  @media (min-width: 768px) {
+    .cards-many {
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    }
+  }
+  .card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    height: 100%;
+    padding: 28px;
+    border: 1px solid var(--color-line);
+    background: var(--color-paper);
+    transition:
+      border-color 250ms ease,
+      transform 400ms var(--ease-out-strong);
+  }
+  .card-dark {
+    border-color: rgb(255 255 255 / 0.14);
+    background: rgb(255 255 255 / 0.03);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .card:hover {
+      border-color: var(--color-formations);
+      transform: translateY(-3px);
+    }
+  }
+  .duration {
+    font-size: clamp(1.8rem, 3vw, 2.4rem);
+    font-weight: 800;
+    font-stretch: 125%;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    color: var(--color-formations);
+  }
+  .card-dark .duration {
+    color: #6fbf63;
+  }
+  .title {
+    margin-top: 6px;
+    font-size: 1.3rem;
+    font-weight: 700;
+    font-stretch: 112%;
+  }
+  .scope {
+    font-weight: 500;
+    color: var(--color-gold-deep);
+  }
+  .card-dark .scope {
+    color: var(--color-gold);
+  }
+  .summary {
+    max-width: 52ch;
+    line-height: 1.55;
+    color: var(--color-ink-soft);
+  }
+  .card-dark .summary {
+    color: rgb(255 255 255 / 0.72);
+  }
+  .facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    margin: 6px 0 14px;
+    font-size: 14px;
+    font-stretch: 75%;
+    letter-spacing: 0.05em;
+    color: var(--color-muted);
+  }
+  .card-dark .facts {
+    color: rgb(255 255 255 / 0.6);
+  }
+  .facts li::before {
+    content: '';
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    margin-right: 7px;
+    vertical-align: middle;
+    background: var(--color-gold);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .card {
+      transition: border-color 250ms ease;
+    }
+    .card:hover {
+      transform: none;
+    }
+  }
+</style>

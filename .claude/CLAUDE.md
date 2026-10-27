@@ -103,5 +103,14 @@ Skills: `ldl-art-direction` (identity), `seo-production`, `visual-qa`,
   method, quote request. Services live in src/data/services.ts (single source for the
   homepage screen and this page); photos are cropped by lib/service-photo.ts.
 
-Next: the 18 service pages (URLs listed in data/services.ts), then training, shop,
-rental, and the redirect plan.
+- `/formations-drone-a-lyon/`, `/boutique/`, `/location-drone-et-camera/`: same deck hero
+  (components/ui/DeckHero.astro, two families with a toggle, optional guide photo), then
+  catalogues. Formations in src/data/formations.ts.
+- `/produit/<slug>/` for all 152 products (same URLs as WordPress). Catalogue imported
+  from the WooCommerce Store API by `node scripts/import-catalog.mjs` →
+  src/data/catalog.json + src/assets/products/ (prices HT; TTC = ×1.2; rentals per day).
+  Filters in src/data/catalog.ts. Sale CTA = order request, rental = dates + estimate +
+  booking request, both to /contact/ until the Stripe Worker exists.
+
+Next: /contact/ (receives ?commande=, ?location=&du=&au=, ?formation=), Stripe checkout
+and booking Worker, the 18 service pages, legal pages, redirect plan.

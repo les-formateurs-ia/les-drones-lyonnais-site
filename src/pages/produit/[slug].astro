@@ -1,0 +1,482 @@
+---
+// /produit/<slug>/ — one page per product of the shop and the rental, at the URLs the
+// WordPress site already uses. Gallery, prices (TTC and HT), then:
+// - sale: order request (Stripe checkout comes next);
+// - rental: pick the dates, see the estimate, send the booking request (validated by the
+//   team, as agreed: pilot level and availability are checked before payment).
+import { Image } from 'astro:assets';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import JsonLd from '../../components/seo/JsonLd.astro';
+import Button from '../../components/ui/Button.astro';
+import Square from '../../components/ui/Square.astro';
+import ProductCard from '../../components/shop/ProductCard.astro';
+import { PRODUCTS, RENTAL_FILTERS, SHOP_FILTERS, droneClass, formatPrice, productImages, productUrl, type Product } from '../../data/catalog';
+import { ACTIVITIES, SITE } from '../../data/site';
+
+export function getStaticPaths() {
+  return PRODUCTS.map((product) => ({ params: { slug: product.slug }, props: { product } }));
+}
+interface Props {
+  product: Product;
+}
+const { product } = Astro.props;
+const rent = product.kind === 'location';
+const parent = rent ? ACTIVITIES.location : ACTIVITIES.boutique;
+const images = productImages(product);
+const cls = rent ? null : droneClass(product);
+const filters = rent ? RENTAL_FILTERS : SHOP_FILTERS;
+const filter = filters.find((f) => f.match(product));
+const related = PRODUCTS.filter((p) => p.slug !== product.slug && p.kind === product.kind && (filter ? filter.match(p) : true)).slice(0, 4);
+// The summary already shows the first sentences; the details list the rest.
+const details = product.description.filter((b, i) => !(i === 0 && b.type === 'p' && product.summary && b.text.startsWith(product.summary.slice(0, 40))));
+
+const title = `${product.name} – ${rent ? 'Location' : 'Achat'} | Les Drones Lyonnais`;
+const description = (product.summary || product.name).slice(0, 155);
+const url = new URL(productUrl(product), SITE.url).href;
+const structuredData = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    description: product.summary,
+    url,
+    category: rent ? 'Location' : 'Boutique',
+    offers: {
+      '@type': 'Offer',
+      priceCurrency: 'EUR',
+      price: product.priceTTC.toFixed(2),
+      availability: 'https://schema.org/InStock',
+      seller: { '@type': 'Organization', name: SITE.name },
+      ...(rent ? { priceSpecification: { '@type': 'UnitPriceSpecification', price: product.priceTTC.toFixed(2), priceCurrency: 'EUR', unitCode: 'DAY' } } : {}),
+    },
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Accueil', item: `${SITE.url}/` },
+      { '@type': 'ListItem', position: 2, name: parent.label, item: new URL(parent.href, SITE.url).href },
+      { '@type': 'ListItem', position: 3, name: product.name, item: url },
+    ],
+  },
+];
+const today = new Date().toISOString().slice(0, 10);
+---
+
+<BaseLayout title={title} description={description}>
+  {structuredData.map((d) => <JsonLd slot="head" data={d} />)}
+
+  <section class="wrap pt-8 pb-16 md:pt-12 md:pb-24" aria-labelledby="product-title">
+    <nav aria-label="Fil d’Ariane" class="hud-text crumbs">
+      <a href="/">Accueil</a>
+      <span aria-hidden="true">/</span>
+      <a href={parent.href}>{parent.label}</a>
+      {
+        filter && (
+          <>
+            <span aria-hidden="true">/</span>
+            <a href={`${parent.href}?filtre=${filter.id}#catalogue`}>{filter.label}</a>
+          </>
+        )
+      }
+    </nav>
+
+    <div class="mt-6 grid gap-10 lg:grid-cols-12 lg:gap-14">
+      <!-- Gallery -->
+      <div class="gallery lg:col-span-7" data-gallery>
+        <div class="stage">
+          {
+            images.map((img, i) => (
+              <Image
+                src={img}
+                alt={i === 0 ? product.name : ''}
+                widths={[480, 720, 900]}
+                sizes="(min-width: 1024px) 56vw, 92vw"
+                class="shot"
+                data-shot={i}
+                data-active={i === 0 || undefined}
+                loading={i === 0 ? 'eager' : 'lazy'}
+              />
+            ))
+          }
+          {cls && <span class="badge hud-text">Classe {cls}</span>}
+        </div>
+        {
+          images.length > 1 && (
+            <ul class="thumbs" aria-label="Photos du produit">
+              {images.map((img, i) => (
+                <li>
+                  <button type="button" data-thumb={i} aria-pressed={i === 0 ? 'true' : 'false'} aria-label={`Photo ${i + 1}`}>
+                    <Image src={img} alt="" width={120} height={120} densities={[1, 2]} fit="contain" background="#ffffff" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )
+        }
+      </div>
+
+      <!-- Buying / booking -->
+      <div class="lg:col-span-5">
+        <div class="buy lg:sticky lg:top-24">
+          <p class="kind hud-text">
+            <Square color={rent ? ACTIVITIES.location.color : 'var(--color-ink)'} />
+            {rent ? 'Location' : 'Vente'}
+            {filter && `, ${filter.label}`}
+          </p>
+          <h1 id="product-title" class="display mt-3 text-[clamp(1.8rem,3vw,2.6rem)]">{product.name}</h1>
+          {product.summary && <p class="mt-4 leading-relaxed text-ink-soft">{product.summary}</p>}
+
+          <div class="price">
+            {rent && <span class="from">À partir de</span>}
+            <strong>
+              {formatPrice(product.priceTTC)} TTC{rent && <span class="unit"> / jour</span>}
+            </strong>
+            <span class="ht">soit {formatPrice(product.priceHT)} HT</span>
+          </div>
+
+          {
+            rent ? (
+              <form class="booking" action={SITE.contactPath} method="get" data-booking data-day={product.priceTTC}>
+                <input type="hidden" name="location" value={product.slug} />
+                <div class="dates">
+                  <label>
+                    <span>Du</span>
+                    <input type="date" name="du" min={today} required />
+                  </label>
+                  <label>
+                    <span>Au</span>
+                    <input type="date" name="au" min={today} required />
+                  </label>
+                </div>
+                <p class="estimate" aria-live="polite" data-estimate>
+                  Choisissez vos dates pour une estimation.
+                </p>
+                <button type="submit" class="submit">
+                  Demander la réservation
+                </button>
+                <p class="note">Nous confirmons la disponibilité et votre niveau de pilotage, puis vous envoyons le lien de paiement et la caution.</p>
+              </form>
+            ) : (
+              <div class="actions">
+                <Button href={`${SITE.contactPath}?commande=${product.slug}`}>Commander ce produit</Button>
+                <Button href={SITE.phoneHref} variant="outline">
+                  Conseil : {SITE.phone}
+                </Button>
+                <p class="note">Paiement en ligne bientôt disponible. En attendant, nous vous recontactons sous 24 h ouvrées.</p>
+              </div>
+            )
+          }
+
+          <ul class="assurances">
+            <li>{rent ? 'Matériel vérifié avant chaque location' : 'Conseil de télépilotes professionnels'}</li>
+            <li>{rent ? 'Prise en main expliquée au retrait' : 'Livraison partout en France'}</li>
+            <li>Équipe basée à Lyon</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {
+    details.length > 0 && (
+      <section class="border-t border-line bg-paper section-pad" aria-labelledby="details-title">
+        <div class="wrap grid gap-10 lg:grid-cols-12">
+          <h2 id="details-title" class="display text-[clamp(1.8rem,3vw,2.6rem)] lg:col-span-4">
+            En détail
+          </h2>
+          <div class="details lg:col-span-7 lg:col-start-6">
+            {details.map((b) => (b.type === 'h' ? <h3>{b.text}</h3> : <p class={b.type === 'li' ? 'li' : undefined}>{b.text}</p>))}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  {
+    related.length > 0 && (
+      <section class="border-t border-line bg-paper section-pad" aria-labelledby="related-title">
+        <div class="wrap">
+          <h2 id="related-title" class="display text-[clamp(1.8rem,3vw,2.6rem)]">
+            {rent ? 'À louer aussi' : 'Vous aimerez aussi'}
+          </h2>
+          <ul class="mt-10 grid grid-cols-2 gap-x-5 gap-y-10 lg:grid-cols-4">
+            {related.map((p) => (
+              <li>
+                <ProductCard product={p} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+    )
+  }
+</BaseLayout>
+
+<style>
+  .crumbs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    color: var(--color-muted);
+  }
+  .crumbs a:hover {
+    color: var(--color-ink);
+  }
+
+  /* ---------- Gallery ---------- */
+  .stage {
+    position: relative;
+    aspect-ratio: 1;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid var(--color-line);
+    cursor: zoom-in;
+  }
+  .shot {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    opacity: 0;
+    transition:
+      opacity 400ms ease,
+      transform 500ms var(--ease-out-strong);
+  }
+  .shot[data-active] {
+    opacity: 1;
+  }
+  /* Hover zooms towards the pointer (--zx/--zy set by the script). */
+  .stage.is-zoom .shot[data-active] {
+    transform: scale(1.8);
+    transform-origin: var(--zx, 50%) var(--zy, 50%);
+  }
+  .badge {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    z-index: 4;
+    padding: 4px 10px;
+    color: #fff;
+    background: var(--color-ink);
+  }
+  .thumbs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .thumbs button {
+    display: block;
+    width: 76px;
+    height: 76px;
+    padding: 4px;
+    border: 1px solid var(--color-line);
+    background: #fff;
+    transition: border-color 200ms ease;
+  }
+  .thumbs button[aria-pressed='true'] {
+    border-color: var(--color-ink);
+  }
+  .thumbs img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  /* ---------- Buy box ---------- */
+  .kind {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--color-muted);
+  }
+  .price {
+    display: flex;
+    flex-direction: column;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--color-line);
+  }
+  .price strong {
+    font-size: clamp(1.8rem, 3vw, 2.4rem);
+    font-weight: 800;
+    font-stretch: 118%;
+    letter-spacing: -0.02em;
+  }
+  .unit {
+    font-size: 0.55em;
+    font-weight: 600;
+  }
+  .from,
+  .ht {
+    color: var(--color-muted);
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 24px;
+  }
+  .note {
+    margin-top: 10px;
+    width: 100%;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--color-muted);
+  }
+  .booking {
+    margin-top: 24px;
+  }
+  .dates {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .dates label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .dates input {
+    min-height: 48px;
+    padding: 0 12px;
+    border: 1px solid var(--color-line);
+    font: inherit;
+    font-size: 16px;
+    background: #fff;
+  }
+  .dates input:focus-visible {
+    border-color: var(--color-ink);
+  }
+  .estimate {
+    margin-top: 12px;
+    padding: 12px 14px;
+    font-size: 14px;
+    background: var(--color-mist);
+    color: var(--color-ink-soft);
+  }
+  .submit {
+    width: 100%;
+    min-height: 52px;
+    margin-top: 12px;
+    font-weight: 700;
+    color: #fff;
+    background: var(--color-location);
+    transition:
+      filter 200ms ease,
+      transform 150ms ease-out;
+  }
+  .submit:active {
+    transform: scale(0.98);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .submit:hover {
+      filter: brightness(1.08);
+    }
+  }
+  .assurances {
+    display: grid;
+    gap: 8px;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--color-line);
+    font-size: 15px;
+    color: var(--color-ink-soft);
+  }
+  .assurances li::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-right: 10px;
+    vertical-align: middle;
+    background: var(--color-gold);
+  }
+
+  /* ---------- Details ---------- */
+  .details {
+    display: grid;
+    gap: 14px;
+    max-width: 70ch;
+    line-height: 1.65;
+    color: var(--color-ink-soft);
+  }
+  .details h3 {
+    margin-top: 12px;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--color-ink);
+  }
+  .details .li {
+    position: relative;
+    padding-left: 18px;
+  }
+  .details .li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.7em;
+    width: 6px;
+    height: 6px;
+    background: var(--color-gold);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .shot {
+      transition: opacity 200ms ease;
+    }
+    .stage.is-zoom .shot[data-active] {
+      transform: none;
+    }
+  }
+</style>
+
+<script>
+  // Gallery: thumbnails switch the photo; hovering the photo zooms towards the pointer.
+  document.querySelectorAll<HTMLElement>('[data-gallery]').forEach((gallery) => {
+    const stage = gallery.querySelector<HTMLElement>('.stage')!;
+    const shots = [...gallery.querySelectorAll<HTMLElement>('[data-shot]')];
+    const thumbs = [...gallery.querySelectorAll<HTMLButtonElement>('[data-thumb]')];
+    thumbs.forEach((t) =>
+      t.addEventListener('click', () => {
+        const i = Number(t.dataset.thumb);
+        shots.forEach((s, k) => s.toggleAttribute('data-active', k === i));
+        thumbs.forEach((b, k) => b.setAttribute('aria-pressed', String(k === i)));
+      }),
+    );
+    if (matchMedia('(hover: hover) and (pointer: fine)').matches) {
+      stage.addEventListener('pointerenter', () => stage.classList.add('is-zoom'));
+      stage.addEventListener('pointerleave', () => stage.classList.remove('is-zoom'));
+      stage.addEventListener('pointermove', (e) => {
+        const r = stage.getBoundingClientRect();
+        stage.style.setProperty('--zx', `${(((e.clientX - r.left) / r.width) * 100).toFixed(1)}%`);
+        stage.style.setProperty('--zy', `${(((e.clientY - r.top) / r.height) * 100).toFixed(1)}%`);
+      });
+    }
+  });
+
+  // Rental: estimate from the dates (days × daily rate; the team confirms the final quote).
+  document.querySelectorAll<HTMLFormElement>('[data-booking]').forEach((form) => {
+    const day = Number(form.dataset.day);
+    const from = form.elements.namedItem('du') as HTMLInputElement;
+    const to = form.elements.namedItem('au') as HTMLInputElement;
+    const out = form.querySelector<HTMLElement>('[data-estimate]')!;
+    const fmt = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' });
+    const update = () => {
+      if (from.value) to.min = from.value;
+      if (!from.value || !to.value) return;
+      const days = Math.round((Date.parse(to.value) - Date.parse(from.value)) / 86400000) + 1;
+      if (days < 1) {
+        out.textContent = 'La date de fin doit suivre la date de début.';
+        return;
+      }
+      out.textContent = `${days} jour${days > 1 ? 's' : ''} : environ ${fmt.format(days * day)} TTC, hors caution. Le devis final vous est confirmé par l’équipe.`;
+    };
+    from.addEventListener('change', update);
+    to.addEventListener('change', update);
+  });
+</script>

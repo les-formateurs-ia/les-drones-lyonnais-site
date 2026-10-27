@@ -4,17 +4,28 @@
 // each step lights up when the line reaches it.
 import SectionHeader from '../ui/SectionHeader.astro';
 import { METHOD } from '../../data/services';
+
+interface Props {
+  title?: string;
+  intro?: string;
+  steps?: { title: string; text: string }[];
+}
+const {
+  title = 'Notre méthode, de la demande à la livraison',
+  intro = 'Chaque mission suit les mêmes cinq étapes, de l’analyse de votre besoin à la remise des livrables.',
+  steps = METHOD,
+} = Astro.props;
 ---
 
 <section id="methode" aria-labelledby="method-title" class="method section-pad scroll-mt-16 bg-paper">
   <div class="wrap">
-    <SectionHeader id="method-title" title="Notre méthode, de la demande à la livraison">
-      <p class="max-w-[44ch]">Chaque mission suit les mêmes cinq étapes, de l’analyse de votre besoin à la remise des livrables.</p>
+    <SectionHeader id="method-title" title={title}>
+      <p class="max-w-[44ch]">{intro}</p>
     </SectionHeader>
 
-    <ol class="steps" style={{ '--count': METHOD.length }}>
+    <ol class="steps" style={{ '--count': steps.length }}>
       {
-        METHOD.map((step, i) => (
+        steps.map((step, i) => (
           <li class="step" style={{ '--i': i }}>
             <span class="node" aria-hidden="true" />
             <span class="num hud-text">Étape {String(i + 1).padStart(2, '0')}</span>

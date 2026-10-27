@@ -1,32 +1,55 @@
 ---
-// /prestations/ opening: the interactive card deck of the current page, rebuilt.
-// A toggle chooses the family (technique / artistique); its services fan out in 3D
-// around the card in focus, which is in colour while the others recede in black and
-// white. Drag, arrow keys, the buttons or a click move through the deck; the deck
-// browses on its own until the visitor takes over. Switching family sends the cards
-// away one by one and deals the other deck from the centre. The blurred backdrop
-// follows the card in focus. A team member stands in front, as on the current page:
-// Dylan for the technical services, Théo for the artistic ones.
-// Everything fits in one screen; the rest of the page follows on scroll.
+// Interactive card deck hero, shared by /prestations/ and /formations-drone-a-lyon/.
+// A toggle chooses between two families of cards; its cards fan out in 3D around
+// the card in focus, which is in colour while the others recede in black and white.
+// Drag, arrow keys, the buttons or a click move through the deck; the deck browses on
+// its own until the visitor takes over. Switching family sends the cards away one by
+// one and deals the other deck from the centre. The blurred backdrop follows the card in
+// focus. A team member can stand in front of each family (guide). Everything fits in one
+// screen; the rest of the page follows on scroll. Families are addressed by slot in the
+// markup and styles ('a' first, 'b' second), whatever they are about.
 import { Image } from 'astro:assets';
-import dylan from '../../assets/team/dylan-pied.webp';
-import theo from '../../assets/team/theo-pied.webp';
-import Square from '../ui/Square.astro';
-import { servicePhoto } from '../../lib/service-photo';
-import { FAMILIES, PROMISES, SENSOR_LABEL, servicesOf, type ServiceFamily } from '../../data/services';
-import { ACTIVITIES } from '../../data/site';
+import type { ImageMetadata } from 'astro';
+import Square from './Square.astro';
+import type { ServicePhoto } from '../../lib/service-photo';
 
-const FAMILY_IDS: ServiceFamily[] = ['technique', 'artistique'];
-const decks = await Promise.all(
-  FAMILY_IDS.map(async (family) => ({
-    family,
-    cards: await Promise.all(servicesOf(family).map(async (s) => ({ ...s, photo: await servicePhoto(s.image, 4 / 5) }))),
-  })),
-);
+export interface DeckCard {
+  href: string;
+  label: string;
+  summary: string;
+  /** Small label on the card (sensor, duration…). */
+  tag: string;
+  /** Portrait 4:5 crop (servicePhoto(name, 4 / 5)). */
+  photo: ServicePhoto;
+}
+export interface DeckFamily {
+  /** Toggle label. */
+  label: string;
+  /** Optional team member standing in front of the deck. */
+  guide?: { photo: ImageMetadata; alt: string };
+  /** Accessible name of the deck. */
+  title: string;
+  tagline: string;
+  cards: DeckCard[];
+}
+interface Props {
+  crumb: string;
+  title: string;
+  lead: string;
+  /** Activity colour of the LDL square. */
+  color: string;
+  /** Plural noun for the counts ("prestations", "formations"). */
+  noun: string;
+  families: DeckFamily[];
+  promises: { title: string; text: string }[];
+}
+const { crumb, title, lead, color, noun, families, promises } = Astro.props;
+const SLOTS = ['a', 'b'] as const;
+const decks = families.slice(0, 2).map((f, i) => ({ ...f, id: SLOTS[i] }));
 const first = decks[0].cards[0];
 ---
 
-<section class="presta-hero" aria-labelledby="presta-title" data-family="technique">
+<section class="presta-hero" aria-labelledby="deck-hero-title" data-family="a">
   <!-- Ambient backdrop: the card in focus, blurred; two layers cross-fade. -->
   <div class="ambient" aria-hidden="true">
     <img class="amb is-on" src={first.photo.src} alt="" />
@@ -39,30 +62,30 @@ const first = decks[0].cards[0];
     <nav aria-label="Fil d’Ariane" class="hud-text crumbs">
       <a href="/">Accueil</a>
       <span aria-hidden="true">/</span>
-      <span aria-current="page">Prestations</span>
+      <span aria-current="page">{crumb}</span>
     </nav>
     <div class="headline">
-      <h1 id="presta-title" class="display flex items-start gap-4 text-[clamp(1.9rem,3.3vw,3.1rem)]">
-        <Square color={ACTIVITIES.prestations.color} class="mt-[0.2em] size-[0.3em] shrink-0" />
-        Prestations drone et audiovisuelles
+      <h1 id="deck-hero-title" class="display flex items-start gap-4 text-[clamp(1.9rem,3.3vw,3.1rem)]">
+        <Square color={color} class="mt-[0.2em] size-[0.3em] shrink-0" />
+        {title}
       </h1>
       <div class="lead">
-        <p class="leading-relaxed text-white/80">L’art de capturer l’essentiel, à Lyon et partout en France.</p>
-        <div class="toggle" role="group" aria-label="Famille de prestations">
+        <p class="leading-relaxed text-white/80">{lead}</p>
+        <div class="toggle" role="group" aria-label={`Famille de ${noun}`}>
           <span class="toggle-thumb" aria-hidden="true"></span>
           {
-            FAMILY_IDS.map((family, i) => (
-              <button type="button" data-family-btn={family} aria-pressed={i === 0 ? 'true' : 'false'} aria-controls={`deck-${family}`}>
-                {family === 'technique' ? 'Technique' : 'Artistique'}
+            decks.map(({ id, label }, i) => (
+              <button type="button" data-family-btn={id} aria-pressed={i === 0 ? 'true' : 'false'} aria-controls={`deck-${id}`}>
+                {label}
               </button>
             ))
           }
         </div>
         <p class="tagline hud-text" aria-live="polite">
           {
-            FAMILY_IDS.map((family) => (
-              <span data-tagline={family}>
-                {FAMILIES[family].tagline}, {servicesOf(family).length} prestations
+            decks.map((d) => (
+              <span data-tagline={d.id}>
+                {d.tagline}, {d.cards.length} {noun}
               </span>
             ))
           }
@@ -73,14 +96,14 @@ const first = decks[0].cards[0];
 
   <div class="stage">
     {
-      decks.map(({ family, cards }, di) => (
+      decks.map(({ id: family, title: deckTitle, cards }, di) => (
         <div
           class="deck"
           id={`deck-${family}`}
           data-deck={family}
           role="region"
           aria-roledescription="carrousel"
-          aria-label={FAMILIES[family].title}
+          aria-label={deckTitle}
           hidden={di !== 0}
           tabindex="0"
         >
@@ -97,7 +120,7 @@ const first = decks[0].cards[0];
                 decoding="async"
                 draggable="false"
               />
-              <span class="card-sensor hud-text">{SENSOR_LABEL[card.sensor]}</span>
+              <span class="card-sensor hud-text">{card.tag}</span>
               <span class="card-body">
                 <span class="card-title">{card.label}</span>
                 <span class="card-summary">{card.summary}</span>
@@ -109,16 +132,22 @@ const first = decks[0].cards[0];
       ))
     }
 
-    <Image src={dylan} alt="Dylan, fondateur des Drones Lyonnais" widths={[300, 450, 600]} sizes="(min-width: 1024px) 22vw, 0px" class="guide" data-guide="technique" loading="eager" />
-    <Image src={theo} alt="Théo, responsable audiovisuel et formation" widths={[300, 450, 600]} sizes="(min-width: 1024px) 22vw, 0px" class="guide" data-guide="artistique" loading="eager" />
+    {
+      decks.map(
+        (d) =>
+          d.guide && (
+            <Image src={d.guide.photo} alt={d.guide.alt} widths={[300, 450, 600]} sizes="(min-width: 1024px) 22vw, 0px" class="guide" data-guide={d.id} loading="eager" />
+          ),
+      )
+    }
 
     <div class="controls">
-      <button type="button" class="nav-btn" data-step="-1" aria-label="Prestation précédente">
+      <button type="button" class="nav-btn" data-step="-1" aria-label="Précédent">
         <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3L5 8l5 5" fill="none" stroke="currentColor" stroke-width="1.6" /></svg>
       </button>
       <span class="counter hud-text" aria-hidden="true"><span data-pos>01</span> / <span data-total>{String(decks[0].cards.length).padStart(2, '0')}</span></span>
       <span class="progress" aria-hidden="true"><span></span></span>
-      <button type="button" class="nav-btn" data-step="1" aria-label="Prestation suivante">
+      <button type="button" class="nav-btn" data-step="1" aria-label="Suivant">
         <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.6" /></svg>
       </button>
     </div>
@@ -126,7 +155,7 @@ const first = decks[0].cards[0];
 
   <ul class="promises wrap" aria-label="Nos engagements">
     {
-      PROMISES.map((p) => (
+      promises.map((p) => (
         <li>
           <Square color="var(--color-gold)" />
           <span>
@@ -247,7 +276,7 @@ const first = decks[0].cards[0];
     background: var(--color-gold);
     transition: transform 450ms var(--ease-out-strong);
   }
-  .presta-hero[data-family='artistique'] .toggle-thumb {
+  .presta-hero[data-family='b'] .toggle-thumb {
     transform: translateX(100%);
   }
   .tagline {
@@ -263,8 +292,8 @@ const first = decks[0].cards[0];
       opacity 300ms ease,
       transform 400ms var(--ease-out-strong);
   }
-  .presta-hero[data-family='technique'] [data-tagline='artistique'],
-  .presta-hero[data-family='artistique'] [data-tagline='technique'] {
+  .presta-hero[data-family='a'] [data-tagline='b'],
+  .presta-hero[data-family='b'] [data-tagline='a'] {
     opacity: 0;
     transform: translateY(8px);
   }
@@ -336,7 +365,8 @@ const first = decks[0].cards[0];
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(rgb(0 0 0 / 0) 35%, rgb(0 0 0 / 0.85));
+    /* Strong enough for product shots on white too. */
+    background: linear-gradient(rgb(0 0 0 / 0) 22%, rgb(0 0 0 / 0.55) 48%, rgb(0 0 0 / 0.92) 78%);
     pointer-events: none;
   }
   .card-sensor {
@@ -455,8 +485,8 @@ const first = decks[0].cards[0];
   }
   /* Changing family hands over from one guide to the other: one slips down and out,
      the other rises in. */
-  .presta-hero[data-family='technique'] [data-guide='artistique'],
-  .presta-hero[data-family='artistique'] [data-guide='technique'] {
+  .presta-hero[data-family='a'] [data-guide='b'],
+  .presta-hero[data-family='b'] [data-guide='a'] {
     opacity: 0;
     translate: 0 14%;
   }
@@ -592,7 +622,7 @@ const first = decks[0].cards[0];
       animation: card-in 1000ms var(--ease-out-strong) backwards;
       animation-delay: calc(250ms + var(--ad) * 70ms);
     }
-    .presta-hero[data-family='technique'] [data-guide='technique'] {
+    .presta-hero[data-family='a'] [data-guide='a'] {
       animation: rise 1000ms var(--ease-out-strong) 400ms backwards;
     }
   }

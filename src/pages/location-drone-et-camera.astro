@@ -1,0 +1,78 @@
+---
+// /location-drone-et-camera/ — rental, rebuilt from the current page: ready-to-shoot
+// packs and equipment in the same interactive deck (toggle Packs / Matériel), the full
+// rental catalogue with filters, what is included, and the bridge to the shop.
+import BaseLayout from '../layouts/BaseLayout.astro';
+import JsonLd from '../components/seo/JsonLd.astro';
+import DeckHero, { type DeckFamily } from '../components/ui/DeckHero.astro';
+import ProductGrid from '../components/shop/ProductGrid.astro';
+import ShopBridge from '../components/shop/ShopBridge.astro';
+import { productDeckCards } from '../lib/product-photo';
+import { pick } from '../lib/pick';
+import { RENTAL_FILTERS, forRent, productUrl } from '../data/catalog';
+import { ACTIVITIES, SITE } from '../data/site';
+
+// Title and description keep the intent of the current WordPress page.
+const title = 'Location drone et matériel audiovisuel à Lyon | Les Drones Lyonnais';
+const description =
+  'Louez drones, caméras, micros, éclairages et packs de tournage à Lyon. Consultez le matériel, les accessoires inclus et les conditions de location.';
+
+const packs = pick(
+  'pack-drone-plus-camera-location',
+  'pack-inspection-thermqiue-par-drone-location',
+  'location-pack-interview',
+  'pack-dji-inspire-2',
+  'pack-dji-d-rtk-3-station-rtk-trepied-et-canne',
+  'pack-ecran-hollyland-pyro-5-dji-sdr-transmission',
+  'smallrig-rc120d-eclairage-led-cob-120w-pack-duo',
+  'pack-rig-accessoires-camera-video',
+);
+const gear = pick(
+  'dji-mavic-4-pro-location',
+  'sony-alpha-7s-iii-location',
+  'location-mavic-3-thermal',
+  'dji-matrice-4e-eu-c5',
+  'location-dji-mini-5-pro-fly-more-combo-avec-radiocommande-dji-rc',
+  'sony-alpha-7-iv',
+  'sigma-70-200mm-f-2-8-dg-dn-os-sony-e',
+  'location-camera-timelapse',
+  'pack-gopro-hero12-black',
+);
+const families: DeckFamily[] = [
+  { label: 'Packs', title: 'Packs prêts à tourner', tagline: 'Tout le nécessaire, en une réservation', cards: await productDeckCards(packs, () => 'Pack') },
+  { label: 'Matériel', title: 'Matériel à la une', tagline: 'Drones, caméras et objectifs', cards: await productDeckCards(gear, (p) => (p.categories.includes('drones') ? 'Drone' : 'Caméra')) },
+];
+
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  name: 'Location Les Drones Lyonnais',
+  itemListElement: forRent.map((p, i) => ({ '@type': 'ListItem', position: i + 1, url: new URL(productUrl(p), SITE.url).href })),
+};
+---
+
+<BaseLayout title={title} description={description} headerOverlay>
+  <JsonLd slot="head" data={structuredData} />
+  <DeckHero
+    crumb="Location"
+    title="Location drone et matériel audiovisuel"
+    lead="Le matériel de nos tournages, vérifié et prêt à partir."
+    color={ACTIVITIES.location.color}
+    noun="références"
+    families={families}
+    promises={[
+      { title: 'Matériel testé', text: 'Vérifié et entretenu.' },
+      { title: 'Assistance experte', text: 'Une équipe disponible.' },
+      { title: 'Prise en main', text: 'Formation au matériel.' },
+    ]}
+  />
+  <ProductGrid
+    id="catalogue"
+    title="Tout le matériel en location"
+    intro="Drones, caméras, objectifs, son, lumière et accessoires, à la journée. Les prix indiqués sont des tarifs de départ."
+    color={ACTIVITIES.location.color}
+    products={forRent}
+    filters={RENTAL_FILTERS}
+  />
+  <ShopBridge mode="location" />
+</BaseLayout>

@@ -1,0 +1,72 @@
+---
+// /boutique/ — the shop, rebuilt from the current page: drones and accessories shown as
+// the same interactive deck as /prestations/ (toggle Drones / Accessoires), then the full
+// catalogue with filters, then the bridge to rental and advice.
+import BaseLayout from '../layouts/BaseLayout.astro';
+import JsonLd from '../components/seo/JsonLd.astro';
+import DeckHero, { type DeckFamily } from '../components/ui/DeckHero.astro';
+import ProductGrid from '../components/shop/ProductGrid.astro';
+import ShopBridge from '../components/shop/ShopBridge.astro';
+import { productDeckCards } from '../lib/product-photo';
+import { pick } from '../lib/pick';
+import { SHOP_FILTERS, droneClass, forSale, productUrl } from '../data/catalog';
+import { ACTIVITIES, SITE } from '../data/site';
+
+// Title and description keep the intent of the current WordPress page.
+const title = 'Drones et accessoires : achat et conseil à Lyon | Les Drones Lyonnais';
+const description =
+  'Choisissez votre drone et ses accessoires avec Les Drones Lyonnais. Comparez les modèles pour la vidéo, l’inspection et les missions professionnelles.';
+
+const drones = pick(
+  'dji-mavic-4-pro',
+  'dji-mini-5-pro-standard-combo',
+  'dji-neo-2-fly-more-combo-rc-n3',
+  'dji-air-3s-fly-more-combo-rc-n3',
+  'dji-avata-360-pack-fly-more-combo-rc2',
+  'dji-lito-x1-fly-more-combo-rc-2',
+  'dji-matrice-4e',
+  'dji-mavic-4-pro-certifie-c5-easa',
+  'dji-inspire-3',
+);
+const accessories = forSale
+  .filter((p) => !p.categories.includes('drones'))
+  .filter((p) => ['kit-c5', 'capteur-thermographie', 'capteur-modelisation', 'capteur-son-lumiere', 'batterie', 'accessoires-pieces', 'meilleures-ventes'].some((c) => p.categories.includes(c)))
+  .slice(0, 9);
+const families: DeckFamily[] = [
+  { label: 'Drones', title: 'Drones à la une', tagline: 'Du loisir aux missions certifiées C5', cards: await productDeckCards(drones, (p) => (droneClass(p) ? `Classe ${droneClass(p)}` : 'Drone')) },
+  { label: 'Accessoires', title: 'Accessoires à la une', tagline: 'Batteries, capteurs, kits et pièces', cards: await productDeckCards(accessories, () => 'Accessoire') },
+];
+
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  name: 'Boutique Les Drones Lyonnais',
+  itemListElement: forSale.map((p, i) => ({ '@type': 'ListItem', position: i + 1, url: new URL(productUrl(p), SITE.url).href })),
+};
+---
+
+<BaseLayout title={title} description={description} headerOverlay>
+  <JsonLd slot="head" data={structuredData} />
+  <DeckHero
+    crumb="Boutique"
+    title="Boutique drones et accessoires"
+    lead="Le matériel que nous utilisons en mission, conseillé par des télépilotes."
+    color="var(--color-paper)"
+    noun="produits"
+    families={families}
+    promises={[
+      { title: 'Conseil d’experts', text: 'Des pilotes pour vous orienter.' },
+      { title: 'Livraison rapide', text: 'Partout en France.' },
+      { title: 'Paiement sécurisé', text: 'Prix affichés TTC et HT.' },
+    ]}
+  />
+  <ProductGrid
+    id="catalogue"
+    title="Tout le catalogue"
+    intro="Drones, versions certifiées C5, capteurs, batteries et accessoires : filtrez pour trouver le bon équipement."
+    color="var(--color-ink)"
+    products={forSale}
+    filters={SHOP_FILTERS}
+  />
+  <ShopBridge mode="vente" />
+</BaseLayout>
