@@ -1,0 +1,405 @@
+---
+// Services, variant (to compare with Services.astro): artistic on the left, technical on
+// the right, a 3D drone in the middle cut in two at the border between them — the
+// artistic half in graphite and gold, the technical half as a blueprint. Pointing at a
+// side widens it; the drone stays centred on the cut. Pointing at a service
+// shows its photo as the panel's background and unfolds its description.
+import SectionHeader from '../ui/SectionHeader.astro';
+import Square from '../ui/Square.astro';
+import SensorFilters from '../ui/SensorFilters.astro';
+import { servicePhoto } from '../../lib/service-photo';
+import { FAMILIES, servicesOf, type ServiceFamily } from '../../data/services';
+import { ACTIVITIES } from '../../data/site';
+
+const sides: { family: ServiceFamily; label: string; backdrop: string }[] = [
+  { family: 'artistique', label: 'Artistique', backdrop: 'cinema.jpg' },
+  { family: 'technique', label: 'Technique', backdrop: 'topographie.jpg' },
+];
+const data = await Promise.all(
+  sides.map(async (side) => ({
+    ...side,
+    info: FAMILIES[side.family],
+    backdrop: await servicePhoto(side.backdrop),
+    services: await Promise.all(servicesOf(side.family).map(async (s) => ({ ...s, photo: await servicePhoto(s.image) }))),
+  })),
+);
+---
+
+<section aria-labelledby="split-title" class="split-section bg-ink text-white">
+  <div class="wrap pt-[clamp(80px,10vw,128px)] pb-10">
+    <SectionHeader id="split-title" title="Nos prestations par drone" color={ACTIVITIES.prestations.color} dark>
+      <p class="max-w-[44ch]">Deux métiers, un même drone : l’image qui raconte, la donnée qui mesure. Survolez un côté pour l’explorer.</p>
+    </SectionHeader>
+  </div>
+
+  <div class="split" data-hover="none">
+    {
+      data.map((side) => (
+        <div class="side" data-side={side.family}>
+          <div class="bg" aria-hidden="true">
+            <img class="bg-base" src={side.backdrop.src} srcset={side.backdrop.srcset} sizes="60vw" alt="" loading="lazy" decoding="async" />
+            {side.services.map((s, i) => (
+              <img class="bg-shot" data-shot={i} src={s.photo.src} srcset={s.photo.srcset} sizes="60vw" alt="" loading="lazy" decoding="async" />
+            ))}
+            <span class="veil" />
+          </div>
+
+          <div class="content">
+            <p class="side-label">
+              <Square color={side.family === 'artistique' ? 'var(--color-gold)' : '#9fd3ff'} class="size-3" />
+              {side.label}
+            </p>
+            <h3 class="side-title">{side.info.tagline}</h3>
+            <ul class="list">
+              {side.services.map((s, i) => (
+                <li>
+                  <a href={s.href} class="item" data-item={i}>
+                    <span class="item-label">{s.label}</span>
+                    <span class="item-desc">
+                      <span>{s.summary}</span>
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      ))
+    }
+
+    <div class="stage" aria-hidden="true">
+      <canvas class="drone"></canvas>
+      <span class="cut"></span>
+    </div>
+  </div>
+  <SensorFilters />
+</section>
+
+<style>
+  .split {
+    position: relative;
+    display: flex;
+    min-height: min(100svh, 860px);
+  }
+
+  /* ---------- Sides ---------- */
+  .side {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    transition: flex-grow 800ms var(--ease-out-strong);
+  }
+  .split[data-hover='artistique'] [data-side='artistique'],
+  .split[data-hover='technique'] [data-side='technique'] {
+    flex-grow: 1.4;
+  }
+
+  .bg,
+  .bg img,
+  .veil {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .bg img {
+    object-fit: cover;
+  }
+  .bg-base {
+    transition: opacity 600ms ease;
+  }
+  [data-side='artistique'] .bg-base {
+    filter: sepia(0.35) saturate(1.2) brightness(0.55);
+  }
+  /* The technical side reads as a survey drawing over a blueprint grid. */
+  [data-side='technique'] .bg-base {
+    filter: url(#sensor-survey);
+    opacity: 0.7;
+  }
+  [data-side='technique'] .bg {
+    background:
+      linear-gradient(rgb(159 211 255 / 0.08) 1px, transparent 1px) 0 0 / 40px 40px,
+      linear-gradient(90deg, rgb(159 211 255 / 0.08) 1px, transparent 1px) 0 0 / 40px 40px,
+      #06121f;
+  }
+  .bg-shot {
+    opacity: 0;
+    transform: scale(1.05);
+    transition:
+      opacity 500ms ease,
+      transform 1200ms var(--ease-out-strong);
+  }
+  .bg-shot.is-on {
+    opacity: 1;
+    transform: none;
+  }
+  .side.has-shot .bg-base {
+    opacity: 0;
+  }
+  .veil {
+    pointer-events: none;
+  }
+  [data-side='artistique'] .veil {
+    background: linear-gradient(90deg, rgb(0 0 0 / 0.85), rgb(0 0 0 / 0.35) 70%, rgb(0 0 0 / 0.6));
+  }
+  [data-side='technique'] .veil {
+    background: linear-gradient(270deg, rgb(3 10 20 / 0.88), rgb(3 10 20 / 0.35) 70%, rgb(3 10 20 / 0.6));
+  }
+
+  /* ---------- Content ---------- */
+  .content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-width: 360px;
+    padding: 56px clamp(24px, 3.4vw, 48px);
+  }
+  [data-side='technique'] .content {
+    margin-left: auto;
+    text-align: right;
+    align-items: flex-end;
+  }
+  .side-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  [data-side='technique'] .side-label {
+    flex-direction: row-reverse;
+    color: #9fd3ff;
+  }
+  [data-side='artistique'] .side-label {
+    color: var(--color-gold);
+  }
+  .side-title {
+    margin-top: 10px;
+    font-size: clamp(1.6rem, 2.4vw, 2.3rem);
+    font-weight: 700;
+    font-stretch: 118%;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+    text-wrap: balance;
+  }
+  .list {
+    margin-top: 28px;
+    border-top: 1px solid rgb(255 255 255 / 0.15);
+  }
+  [data-side='technique'] .list {
+    border-color: rgb(159 211 255 / 0.25);
+  }
+  .item {
+    display: block;
+    padding: 11px 0;
+    border-bottom: 1px solid rgb(255 255 255 / 0.1);
+  }
+  [data-side='technique'] .item {
+    border-color: rgb(159 211 255 / 0.15);
+  }
+  .item-label {
+    display: inline-block;
+    font-weight: 600;
+    color: rgb(255 255 255 / 0.75);
+    transition:
+      color 200ms ease,
+      transform 300ms var(--ease-out-strong);
+  }
+  /* Description unfolds under the service being pointed at. */
+  .item-desc {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition:
+      grid-template-rows 350ms var(--ease-out-strong),
+      opacity 250ms ease;
+  }
+  .item-desc > span {
+    overflow: hidden;
+    font-size: 14px;
+    line-height: 1.5;
+    color: rgb(255 255 255 / 0.8);
+  }
+  .item.is-on .item-desc {
+    grid-template-rows: 1fr;
+    opacity: 1;
+  }
+  .item.is-on .item-desc > span {
+    padding-top: 6px;
+  }
+  .item.is-on .item-label {
+    color: #fff;
+  }
+  [data-side='artistique'] .item.is-on .item-label {
+    transform: translateX(8px);
+  }
+  [data-side='technique'] .item.is-on .item-label {
+    transform: translateX(-8px);
+  }
+  .item:focus-visible {
+    outline-offset: 4px;
+  }
+
+  /* ---------- 3D drone ---------- */
+  .stage {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+  }
+  /* A dark halo behind the drone so it stands out from the photos. */
+  .stage::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: calc(var(--split, 0.5) * 100%);
+    width: min(56vw, 760px);
+    aspect-ratio: 1.4;
+    translate: -50% -50%;
+    background: radial-gradient(closest-side, rgb(0 0 0 / 0.7), rgb(0 0 0 / 0));
+  }
+  .drone {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .cut {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(var(--split, 0.5) * 100%);
+    width: 1px;
+    background: linear-gradient(transparent, var(--color-gold) 25%, var(--color-gold) 75%, transparent);
+  }
+
+  /* ---------- Small screens: drone on top, both lists stacked ---------- */
+  @media (max-width: 1023px) {
+    .split {
+      flex-direction: column;
+      min-height: 0;
+      padding-top: 300px;
+    }
+    .stage {
+      inset: 0 0 auto;
+      height: 300px;
+    }
+    .cut {
+      --split: 0.5;
+    }
+    .side,
+    .split[data-hover] .side {
+      flex: none;
+    }
+    .content,
+    [data-side='technique'] .content {
+      max-width: none;
+      margin: 0;
+      text-align: left;
+      align-items: flex-start;
+      padding: 40px clamp(16px, 4.5vw, 56px);
+    }
+    [data-side='technique'] .side-label {
+      flex-direction: row;
+    }
+    .item-desc {
+      grid-template-rows: 1fr;
+      opacity: 1;
+    }
+    .item-desc > span {
+      padding-top: 4px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .side,
+    .bg-shot,
+    .item-label,
+    .item-desc {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  // Hover state, service previews, and the 3D drone (loaded when the section nears).
+  const section = document.querySelector<HTMLElement>('.split-section');
+  const split = section?.querySelector<HTMLElement>('.split');
+  if (section && split) {
+    const wide = matchMedia('(min-width: 1024px)');
+    const left = split.querySelector<HTMLElement>('[data-side="artistique"]')!;
+    const canvas = split.querySelector<HTMLCanvasElement>('.drone')!;
+    let drone: import('../../lib/split-drone').SplitDrone | null = null;
+    let pointer = { x: 0, y: 0 };
+
+    // Which side is pointed at widens.
+    split.addEventListener('pointermove', (e) => {
+      if (!wide.matches) return;
+      const side = (e.target as HTMLElement).closest<HTMLElement>('[data-side]')?.dataset.side;
+      if (side && split.dataset.hover !== side) split.dataset.hover = side;
+      const r = split.getBoundingClientRect();
+      pointer = { x: ((e.clientX - r.left) / r.width) * 2 - 1, y: ((e.clientY - r.top) / r.height) * 2 - 1 };
+      drone?.setPointer(pointer.x, pointer.y);
+    });
+    split.addEventListener('pointerleave', () => {
+      split.dataset.hover = 'none';
+      drone?.setPointer(0, 0);
+    });
+
+    // Services: pointing at one shows its photo and description.
+    split.querySelectorAll<HTMLElement>('[data-side]').forEach((side) => {
+      const items = [...side.querySelectorAll<HTMLElement>('.item')];
+      const shots = [...side.querySelectorAll<HTMLElement>('.bg-shot')];
+      const show = (i: number | null) => {
+        items.forEach((it, k) => it.classList.toggle('is-on', k === i));
+        shots.forEach((s, k) => s.classList.toggle('is-on', k === i));
+        side.classList.toggle('has-shot', i !== null);
+      };
+      items.forEach((it, i) => {
+        it.addEventListener('pointerenter', () => wide.matches && show(i));
+        it.addEventListener('focus', () => show(i));
+        it.addEventListener('blur', () => show(null));
+      });
+      side.querySelector('.list')!.addEventListener('pointerleave', () => show(null));
+    });
+
+    // The cut follows the border between the sides, also while they resize.
+    const syncCut = () => {
+      const x = wide.matches ? left.offsetWidth / split.offsetWidth : 0.5;
+      split.style.setProperty('--split', x.toFixed(4));
+      drone?.setSplit(x);
+    };
+    let syncing = 0;
+    const loop = () => {
+      syncCut();
+      syncing = requestAnimationFrame(loop);
+    };
+
+    const io = new IntersectionObserver(
+      async ([entry]) => {
+        if (entry.isIntersecting) {
+          if (!drone) {
+            const { createSplitDrone } = await import('../../lib/split-drone');
+            try {
+              drone = createSplitDrone(canvas);
+            } catch {
+              return; // No WebGL: the panels work without the drone.
+            }
+          }
+          drone.setActive(true);
+          if (!syncing) loop();
+        } else {
+          drone?.setActive(false);
+          cancelAnimationFrame(syncing);
+          syncing = 0;
+        }
+      },
+      { rootMargin: '300px 0px' },
+    );
+    io.observe(split);
+  }
+</script>
