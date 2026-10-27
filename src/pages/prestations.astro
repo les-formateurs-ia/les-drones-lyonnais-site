@@ -10,6 +10,7 @@ import theo from '../assets/team/theo-pied.webp';
 import ServiceCatalog from '../components/prestations/ServiceCatalog.astro';
 import Method from '../components/prestations/Method.astro';
 import FinalCta from '../components/home/FinalCta.astro';
+import PopTip from '../components/ui/PopTip.astro';
 import { SERVICES, FAMILIES, PROMISES, SENSOR_LABEL, servicesOf } from '../data/services';
 import { ACTIVITIES } from '../data/site';
 import { SITE } from '../data/site';
@@ -69,5 +70,10 @@ const structuredData = [
   <ServiceCatalog family="technique" />
   <ServiceCatalog family="artistique" dark />
   <Method />
+  <div class="wrap pb-20">
+    <PopTip pose="chantier" title="Les autorisations ? On s’en occupe." action={{ label: 'Demander à Pop', chat: 'Quelle prestation pour mon projet ?' }} class="max-w-[640px]">
+      Étude aéronautique, déclarations, analyse des risques : c’est compris dans chaque mission. Vous ne gérez que votre projet.
+    </PopTip>
+  </div>
   <FinalCta title="Besoin d’une solution sur mesure ?" text="Parlez-nous de votre projet : nous revenons vers vous avec une proposition et un devis détaillé." />
 </BaseLayout>

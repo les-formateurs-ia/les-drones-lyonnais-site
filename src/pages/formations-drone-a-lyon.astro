@@ -8,6 +8,7 @@ import DeckHero, { type DeckFamily } from '../components/ui/DeckHero.astro';
 import FormationCatalog from '../components/formations/FormationCatalog.astro';
 import Method from '../components/prestations/Method.astro';
 import FinalCta from '../components/home/FinalCta.astro';
+import PopTip from '../components/ui/PopTip.astro';
 import { servicePhoto } from '../lib/service-photo';
 import dylan from '../assets/team/dylan-pied.webp';
 import theo from '../assets/team/theo-pied.webp';
@@ -72,5 +73,10 @@ const structuredData = [
   <FormationCatalog family="technique" />
   <FormationCatalog family="artistique" dark />
   <Method title="Comment se déroule une formation" intro="De la première prise de contact à la certification, un parcours encadré par des télépilotes en activité." steps={FORMATION_STEPS} />
+  <div class="wrap pb-20">
+    <PopTip pose="manuel" title="Financer sa formation" action={{ label: 'Demander à Pop', chat: 'Financement CPF' }} class="max-w-[640px]">
+      Nos formations certifiantes (RS6765 et RS6766) sont finançables par le CPF. Je vous explique comment, ou l’équipe monte le dossier avec vous.
+    </PopTip>
+  </div>
   <FinalCta title="Une formation, un financement, une date ?" text="Dites-nous où vous en êtes : nous vous orientons vers la bonne formation et le financement adapté, CPF compris." />
 </BaseLayout>

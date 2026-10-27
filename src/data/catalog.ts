@@ -74,3 +74,95 @@ const ordered = (list: Product[], filters: Filter[]) => [...list].sort((a, b) =>
 export const forSale = ordered(PRODUCTS.filter((p) => p.kind === 'vente'), SHOP_FILTERS);
 export const forRent = ordered(PRODUCTS.filter((p) => p.kind === 'location'), RENTAL_FILTERS);
 export const bestSellers = PRODUCTS.filter((p) => p.categories.includes('meilleures-ventes'));
+
+// ---------------------------------------------------------------------------
+// Shop mega menu, after the current site's: five tabs of visual category tiles.
+// Each tile is also a catalogue filter (?filtre=<tile id>).
+const norm = (s: string) =>
+  s
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase();
+const nameHas = (...terms: string[]) => (p: Product) => terms.some((t) => norm(p.name).includes(t));
+const isDrone = (p: Product) => p.categories.includes('drones');
+const and =
+  (...fs: ((p: Product) => boolean)[]) =>
+  (p: Product) =>
+    fs.every((f) => f(p));
+const not = (f: (p: Product) => boolean) => (p: Product) => !f(p);
+
+export interface MenuTile extends Filter {
+  text: string;
+}
+export interface MenuTab {
+  id: string;
+  label: string;
+  title: string;
+  tiles: MenuTile[];
+}
+
+export const SHOP_MENU: MenuTab[] = [
+  {
+    id: 'grand-public',
+    label: 'Grand public',
+    title: 'Drones grand public',
+    tiles: [
+      { id: 'dji-mini', label: 'DJI Mini', text: 'Moins de 250 g, idéal pour débuter.', match: and(isDrone, nameHas('mini')) },
+      { id: 'dji-neo', label: 'DJI Neo', text: 'Ultra-léger, se pilote même à la main.', match: and(isDrone, nameHas('neo')) },
+      { id: 'dji-lito', label: 'DJI Lito', text: 'Compact et simple, pour bien démarrer.', match: and(isDrone, nameHas('lito')) },
+      { id: 'dji-air', label: 'DJI Air', text: 'Le polyvalent : léger et très bien équipé.', match: and(isDrone, nameHas('air 3')) },
+      { id: 'dji-avata', label: 'DJI Avata', text: 'Immersif, pour voler en FPV.', match: and(isDrone, nameHas('avata')) },
+      { id: 'dji-mavic', label: 'DJI Mavic', text: 'Trois caméras, qualité d’image de référence.', match: and(isDrone, nameHas('mavic'), not(has('c5'))) },
+    ],
+  },
+  {
+    id: 'pro',
+    label: 'Drones pro',
+    title: 'Drones professionnels',
+    tiles: [
+      { id: 'mavic-c5', label: 'Mavic 4 Pro C5', text: 'Le Mavic certifié pour les scénarios STS.', match: and(isDrone, nameHas('mavic'), has('c5')) },
+      { id: 'matrice-4', label: 'DJI Matrice 4', text: 'Inspection et cartographie, compact et précis.', match: and(isDrone, nameHas('matrice 4e', 'matrice 4t')) },
+      { id: 'matrice-400', label: 'DJI Matrice 400', text: 'La plateforme industrielle la plus endurante.', match: and(isDrone, nameHas('matrice 400')) },
+      { id: 'inspire-3', label: 'DJI Inspire 3', text: 'Cinéma aérien plein format 8K.', match: and(isDrone, nameHas('inspire 3')) },
+    ],
+  },
+  {
+    id: 'reglementation',
+    label: 'Par réglementation',
+    title: 'Choisir selon la classe du drone',
+    tiles: [
+      { id: 'classe-c0', label: 'Classe C0', text: 'Moins de 250 g, catégorie Open A1.', match: and(isDrone, has('c0')) },
+      { id: 'classe-c1', label: 'Classe C1', text: 'Catégorie Open A1, formation en ligne A1/A3.', match: and(isDrone, has('c1', 'co_c1')) },
+      { id: 'classe-c2', label: 'Classe C2', text: 'Catégorie Open A2, certificat A2.', match: and(isDrone, has('c2')) },
+      { id: 'classe-c3', label: 'Classe C3', text: 'Catégorie Open A3, loin des personnes.', match: and(isDrone, has('c3')) },
+      { id: 'classe-c5', label: 'Classes C5 et C6', text: 'Catégorie Spécifique, scénarios STS.', match: has('c5', 'c6', 'kit-c5') },
+    ],
+  },
+  {
+    id: 'capteurs',
+    label: 'Capteurs',
+    title: 'Capteurs et nacelles',
+    tiles: [
+      { id: 'capteur-thermographie', label: 'Thermographie', text: 'Détecter les anomalies thermiques.', match: has('capteur-thermographie') },
+      { id: 'capteur-inspections', label: 'Inspection', text: 'Observer et contrôler les ouvrages.', match: has('capteur-inspections') },
+      { id: 'capteur-modelisation', label: 'Modélisation', text: 'Photogrammétrie et LiDAR.', match: has('capteur-modelisation') },
+      { id: 'capteur-positionnement', label: 'Positionnement', text: 'RTK pour une précision centimétrique.', match: has('capteur-positionnement') },
+      { id: 'capteur-son-lumiere', label: 'Son et lumière', text: 'Haut-parleurs et projecteurs embarqués.', match: has('capteur-son-lumiere') },
+      { id: 'capteur-agriculture', label: 'Agriculture', text: 'Suivi des cultures et interventions.', match: has('capteur-agriculture') },
+    ],
+  },
+  {
+    id: 'accessoires',
+    label: 'Accessoires',
+    title: 'Accessoires et pièces',
+    tiles: [
+      { id: 'batteries', label: 'Batteries', text: 'Pour voler plus longtemps.', match: and(has('batterie'), nameHas('batterie')) },
+      { id: 'recharge', label: 'Recharge', text: 'Hubs et stations de charge.', match: nameHas('hub', 'station de charge', 'station de recharge') },
+      { id: 'pilotage', label: 'Pilotage', text: 'Radiocommandes et casques FPV.', match: and(not(isDrone), nameHas('radiocommande', 'goggles', 'rc motion', 'rc pro')) },
+      { id: 'stockage', label: 'Stockage', text: 'Cartes mémoire et SSD.', match: nameHas('carte micro', 'prossd') },
+      { id: 'terrain', label: 'Sur le terrain', text: 'Pistes, harnais et tours de cou.', match: nameHas('piste', 'harnais', 'tour de cou', 'sangle') },
+      { id: 'kit-c5', label: 'Kits C5', text: 'Certifier son drone pour les STS.', match: has('kit-c5') },
+    ],
+  },
+];
+export const MENU_TILES = SHOP_MENU.flatMap((t) => t.tiles);

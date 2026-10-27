@@ -4,6 +4,7 @@
 // duration in large type; the line on the left shows the progression.
 import SectionHeader from '../ui/SectionHeader.astro';
 import Button from '../ui/Button.astro';
+import PopTip from '../ui/PopTip.astro';
 import { FORMATION_FAMILIES, LEVEL_LABEL, formationsOf, type FormationFamily, type FormationLevel } from '../../data/formations';
 import { ACTIVITIES, SITE } from '../../data/site';
 
@@ -50,6 +51,16 @@ const byLevel = levels.map((level) => ({ level, items: formationsOf(family).filt
                 </li>
               ))}
             </ul>
+            {level === 'open' && (
+              <PopTip pose="permis-bapd" title="Le BAPD, c’est quoi ?" dark={dark} flip class="level-pop">
+                Le brevet d’aptitude de pilote à distance : la base pour voler en professionnel en catégorie Open, et la porte d’entrée vers le CATS.
+              </PopTip>
+            )}
+            {level === 'specifique' && (
+              <PopTip pose="permis-cats" title="Et le CATS ?" dark={dark} flip class="level-pop">
+                Le certificat de catégorie Spécifique : pour les scénarios STS, avec un drone de classe C5 ou C6, au-dessus de zones plus exigeantes.
+              </PopTip>
+            )}
           </li>
         ))
       }
@@ -100,6 +111,10 @@ const byLevel = levels.map((level) => ({ level, items: formationsOf(family).filt
   .cards {
     display: grid;
     gap: 16px;
+  }
+  .level :global(.level-pop) {
+    max-width: 560px;
+    margin: 14px 0 0 auto;
   }
   @media (min-width: 768px) {
     .cards-many {

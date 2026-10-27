@@ -56,8 +56,11 @@ One family: Archivo variable (weight 100–900, width 62–125%).
 ## Imagery
 
 - Real photos of the team, the gear and the missions. No stock, no generic AI imagery.
-- Pop (the team's samoyed) is the human signature: one discreet appearance per page
-  at most (footer).
+- Pop (the team's samoyed) is the mascot and the site's assistant: the chat button on
+  every page, and PopTip bubbles where a visitor may hesitate (choosing a drone,
+  regulation, rental, financing). Use the pose that fits the message (src/assets/pop/:
+  permis-*, pilote, livraison, manuel, loupe, support, chantier, pouce, coucou…).
+  One or two tips per page, never decoration for its own sake.
 
 ## Motion
 

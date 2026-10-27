@@ -103,9 +103,16 @@ Skills: `ldl-art-direction` (identity), `seo-production`, `visual-qa`,
   method, quote request. Services live in src/data/services.ts (single source for the
   homepage screen and this page); photos are cropped by lib/service-photo.ts.
 
-- `/formations-drone-a-lyon/`, `/boutique/`, `/location-drone-et-camera/`: same deck hero
-  (components/ui/DeckHero.astro, two families with a toggle, optional guide photo), then
-  catalogues. Formations in src/data/formations.ts.
+- `/formations-drone-a-lyon/`: same deck hero as /prestations/ (components/ui/DeckHero.astro).
+  Formations in src/data/formations.ts.
+- `/boutique/`: ShopHero = search + mega menu (5 tabs of category tiles, as on the
+  current site; SHOP_MENU in data/catalog.ts, each tile is a catalogue filter).
+- `/location-drone-et-camera/`: RentalHero = search + category tiles + featured packs.
+- Heroes are deliberately different per page; do not reuse one hero everywhere.
+- Search: /recherche.json (built), lib/search-client.ts, components/shop/SearchBox.astro.
+- Pop (mascot) is everywhere: PopChat (layout, guided assistant, answers in the file,
+  contextual per page, opens with [data-pop-open][data-pop-ask]) and PopTip (speech
+  bubble with a pose from src/assets/pop/). Regulation advice in data/regulation.ts.
 - `/produit/<slug>/` for all 152 products (same URLs as WordPress). Catalogue imported
   from the WooCommerce Store API by `node scripts/import-catalog.mjs` →
   src/data/catalog.json + src/assets/products/ (prices HT; TTC = ×1.2; rentals per day).

@@ -13,12 +13,16 @@ interface Props {
   color: string;
   products: Product[];
   filters: Filter[];
+  /** More filters reachable by URL only (mega menu tiles, rental categories…). */
+  extraFilters?: Filter[];
 }
-const { id, title, intro, color, products, filters } = Astro.props;
+const { id, title, intro, color, products, filters, extraFilters = [] } = Astro.props;
 const usedFilters = filters.filter((f) => products.some(f.match));
+const allFilters = [...usedFilters, ...extraFilters.filter((f) => !usedFilters.some((u) => u.id === f.id))];
+const labels = Object.fromEntries(allFilters.map((f) => [f.id, f.label]));
 ---
 
-<section id={id} aria-labelledby={`${id}-title`} class="catalog section-pad scroll-mt-16 bg-paper" data-catalog>
+<section id={id} aria-labelledby={`${id}-title`} class="catalog section-pad scroll-mt-16 bg-paper" data-catalog data-labels={JSON.stringify(labels)}>
   <div class="wrap">
     <SectionHeader id={`${id}-title`} title={title} color={color}>
       <p class="max-w-[44ch]">{intro}</p>
@@ -35,10 +39,16 @@ const usedFilters = filters.filter((f) => products.some(f.match));
       }
     </div>
 
+    <p class="state" data-state hidden>
+      <span data-state-text></span>
+      <button type="button" data-clear>Tout afficher</button>
+    </p>
+    <p class="none" data-none hidden>Aucun produit ne correspond. Essayez un autre mot, ou demandez à Pop.</p>
+
     <ul class="grid mt-10 grid-cols-2 gap-x-5 gap-y-10 md:grid-cols-3 lg:grid-cols-4" aria-live="polite">
       {
         products.map((p) => (
-          <li data-tags={usedFilters.filter((f) => f.match(p)).map((f) => f.id).join(' ')}>
+          <li data-tags={allFilters.filter((f) => f.match(p)).map((f) => f.id).join(' ')} data-name={p.name}>
             <ProductCard product={p} />
           </li>
         ))
@@ -88,6 +98,23 @@ const usedFilters = filters.filter((f) => products.some(f.match));
   .chips button:active {
     transform: scale(0.97);
   }
+  .state {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-top: 18px;
+    font-weight: 600;
+  }
+  .state button {
+    padding: 6px 12px;
+    border: 1px solid var(--color-ink);
+    font-size: 14px;
+  }
+  .none {
+    margin-top: 24px;
+    color: var(--color-ink-soft);
+  }
   .grid li {
     animation: in 450ms var(--ease-out-strong) backwards;
   }
@@ -108,15 +135,24 @@ const usedFilters = filters.filter((f) => products.some(f.match));
 </style>
 
 <script>
+  import { normalize } from '../../lib/search-client';
+
   document.querySelectorAll<HTMLElement>('[data-catalog]').forEach((catalog) => {
+    const labels: Record<string, string> = JSON.parse(catalog.dataset.labels!);
     const buttons = [...catalog.querySelectorAll<HTMLButtonElement>('[data-filter]')];
     const items = [...catalog.querySelectorAll<HTMLElement>('li[data-tags]')];
-    const apply = (id: string, updateUrl: boolean) => {
-      if (!buttons.some((b) => b.dataset.filter === id)) id = 'tout';
-      buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.filter === id)));
+    const state = catalog.querySelector<HTMLElement>('[data-state]')!;
+    const stateText = catalog.querySelector<HTMLElement>('[data-state-text]')!;
+    const none = catalog.querySelector<HTMLElement>('[data-none]')!;
+    const names = items.map((li) => normalize(`${li.dataset.name} ${li.dataset.tags}`));
+
+    const apply = (filter: string, query: string, updateUrl: boolean) => {
+      if (!labels[filter]) filter = 'tout';
+      const words = normalize(query).split(' ').filter(Boolean);
+      buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.filter === filter)));
       let n = 0;
-      items.forEach((li) => {
-        const show = id === 'tout' || li.dataset.tags!.split(' ').includes(id);
+      items.forEach((li, i) => {
+        const show = (filter === 'tout' || li.dataset.tags!.split(' ').includes(filter)) && words.every((w) => names[i].includes(w));
         li.hidden = !show;
         // Replay the entrance, staggered, for the items that stay.
         if (show) {
@@ -126,15 +162,35 @@ const usedFilters = filters.filter((f) => products.some(f.match));
           li.style.animationDelay = `${Math.min(n++, 12) * 30}ms`;
         }
       });
+      const parts = [filter !== 'tout' && labels[filter], query && `« ${query} »`].filter(Boolean);
+      state.hidden = parts.length === 0;
+      stateText.textContent = `${n} résultat${n > 1 ? 's' : ''} : ${parts.join(', ')}`;
+      none.hidden = n > 0;
       if (updateUrl) {
         const url = new URL(location.href);
-        if (id === 'tout') url.searchParams.delete('filtre');
-        else url.searchParams.set('filtre', id);
+        if (filter === 'tout') url.searchParams.delete('filtre');
+        else url.searchParams.set('filtre', filter);
+        if (query) url.searchParams.set('q', query);
+        else url.searchParams.delete('q');
         history.replaceState(null, '', url);
       }
     };
-    buttons.forEach((b) => b.addEventListener('click', () => apply(b.dataset.filter!, true)));
-    const initial = new URL(location.href).searchParams.get('filtre');
-    if (initial) apply(initial, false);
+    let current = { filter: 'tout', query: '' };
+    const set = (filter: string, query: string, updateUrl = true) => {
+      current = { filter, query };
+      apply(filter, query, updateUrl);
+    };
+    buttons.forEach((b) => b.addEventListener('click', () => set(b.dataset.filter!, current.query)));
+    catalog.querySelector('[data-clear]')!.addEventListener('click', () => set('tout', ''));
+    // Links elsewhere on the page (mega menu, category tiles) filter without reloading.
+    document.querySelectorAll<HTMLAnchorElement>('a[data-goto-filter]').forEach((a) =>
+      a.addEventListener('click', (e) => {
+        e.preventDefault();
+        set(a.dataset.gotoFilter!, '');
+        catalog.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+      }),
+    );
+    const params = new URL(location.href).searchParams;
+    if (params.get('filtre') || params.get('q')) set(params.get('filtre') ?? 'tout', params.get('q') ?? '', false);
   });
 </script>

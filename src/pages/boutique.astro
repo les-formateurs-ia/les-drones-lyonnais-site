@@ -1,41 +1,20 @@
 ---
-// /boutique/ — the shop, rebuilt from the current page: drones and accessories shown as
-// the same interactive deck as /prestations/ (toggle Drones / Accessoires), then the full
-// catalogue with filters, then the bridge to rental and advice.
+// /boutique/ — the shop, rebuilt from the current page: search and the categories mega
+// menu (ShopHero), the full catalogue with filters, Pop's advice, then the bridge to
+// rental and expert help.
 import BaseLayout from '../layouts/BaseLayout.astro';
 import JsonLd from '../components/seo/JsonLd.astro';
-import DeckHero, { type DeckFamily } from '../components/ui/DeckHero.astro';
+import ShopHero from '../components/shop/ShopHero.astro';
+import PopTip from '../components/ui/PopTip.astro';
 import ProductGrid from '../components/shop/ProductGrid.astro';
 import ShopBridge from '../components/shop/ShopBridge.astro';
-import { productDeckCards } from '../lib/product-photo';
-import { pick } from '../lib/pick';
-import { SHOP_FILTERS, droneClass, forSale, productUrl } from '../data/catalog';
-import { ACTIVITIES, SITE } from '../data/site';
+import { MENU_TILES, SHOP_FILTERS, forSale, productUrl } from '../data/catalog';
+import { SITE } from '../data/site';
 
 // Title and description keep the intent of the current WordPress page.
 const title = 'Drones et accessoires : achat et conseil à Lyon | Les Drones Lyonnais';
 const description =
   'Choisissez votre drone et ses accessoires avec Les Drones Lyonnais. Comparez les modèles pour la vidéo, l’inspection et les missions professionnelles.';
-
-const drones = pick(
-  'dji-mavic-4-pro',
-  'dji-mini-5-pro-standard-combo',
-  'dji-neo-2-fly-more-combo-rc-n3',
-  'dji-air-3s-fly-more-combo-rc-n3',
-  'dji-avata-360-pack-fly-more-combo-rc2',
-  'dji-lito-x1-fly-more-combo-rc-2',
-  'dji-matrice-4e',
-  'dji-mavic-4-pro-certifie-c5-easa',
-  'dji-inspire-3',
-);
-const accessories = forSale
-  .filter((p) => !p.categories.includes('drones'))
-  .filter((p) => ['kit-c5', 'capteur-thermographie', 'capteur-modelisation', 'capteur-son-lumiere', 'batterie', 'accessoires-pieces', 'meilleures-ventes'].some((c) => p.categories.includes(c)))
-  .slice(0, 9);
-const families: DeckFamily[] = [
-  { label: 'Drones', title: 'Drones à la une', tagline: 'Du loisir aux missions certifiées C5', cards: await productDeckCards(drones, (p) => (droneClass(p) ? `Classe ${droneClass(p)}` : 'Drone')) },
-  { label: 'Accessoires', title: 'Accessoires à la une', tagline: 'Batteries, capteurs, kits et pièces', cards: await productDeckCards(accessories, () => 'Accessoire') },
-];
 
 const structuredData = {
   '@context': 'https://schema.org',
@@ -47,19 +26,7 @@ const structuredData = {
 
 <BaseLayout title={title} description={description} headerOverlay>
   <JsonLd slot="head" data={structuredData} />
-  <DeckHero
-    crumb="Boutique"
-    title="Boutique drones et accessoires"
-    lead="Le matériel que nous utilisons en mission, conseillé par des télépilotes."
-    color="var(--color-paper)"
-    noun="produits"
-    families={families}
-    promises={[
-      { title: 'Conseil d’experts', text: 'Des pilotes pour vous orienter.' },
-      { title: 'Livraison rapide', text: 'Partout en France.' },
-      { title: 'Paiement sécurisé', text: 'Prix affichés TTC et HT.' },
-    ]}
-  />
+  <ShopHero />
   <ProductGrid
     id="catalogue"
     title="Tout le catalogue"
@@ -67,6 +34,12 @@ const structuredData = {
     color="var(--color-ink)"
     products={forSale}
     filters={SHOP_FILTERS}
+    extraFilters={MENU_TILES}
   />
+  <div class="wrap -mt-6 pb-16 md:pb-24">
+    <PopTip pose="pouce" title="Un doute sur la compatibilité ?" action={{ label: 'Demander à Pop', chat: 'Quel drone choisir ?' }} class="max-w-[620px]">
+      Batterie, filtres, radiocommande : dites-moi votre drone, je vous indique les accessoires qui vont avec, ou l’équipe vous répond.
+    </PopTip>
+  </div>
   <ShopBridge mode="vente" />
 </BaseLayout>
