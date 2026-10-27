@@ -1,6 +1,7 @@
 ---
 // /produit/<slug>/ — one page per product of the shop and the rental, at the URLs the
-// WordPress site already uses. Gallery, prices (TTC and HT), then:
+// WordPress site already uses. Gallery, prices (TTC and HT), documents, matching
+// accessories and the team's content from the current pages (ProductStory), then:
 // - sale: order request (Stripe checkout comes next);
 // - rental: pick the dates, see the estimate, send the booking request (validated by the
 //   team, as agreed: pilot level and availability are checked before payment).
@@ -10,9 +11,11 @@ import JsonLd from '../../components/seo/JsonLd.astro';
 import Button from '../../components/ui/Button.astro';
 import Square from '../../components/ui/Square.astro';
 import ProductCard from '../../components/shop/ProductCard.astro';
+import ProductStory from '../../components/shop/ProductStory.astro';
+import { productPhoto } from '../../lib/product-photo';
 import PopTip from '../../components/ui/PopTip.astro';
 import { classAdvice, classPose } from '../../data/regulation';
-import { PRODUCTS, RENTAL_FILTERS, SHOP_FILTERS, droneClass, formatPrice, productImages, productUrl, type Product } from '../../data/catalog';
+import { PRODUCTS, RENTAL_FILTERS, SHOP_FILTERS, crossSellOf, droneClass, formatPrice, otherModeOf, productImages, productPage, productUrl, type Product } from '../../data/catalog';
 import { ACTIVITIES, SITE } from '../../data/site';
 
 export function getStaticPaths() {
@@ -28,7 +31,10 @@ const images = productImages(product);
 const cls = rent ? null : droneClass(product);
 const filters = rent ? RENTAL_FILTERS : SHOP_FILTERS;
 const filter = filters.find((f) => f.match(product));
-const related = PRODUCTS.filter((p) => p.slug !== product.slug && p.kind === product.kind && (filter ? filter.match(p) : true)).slice(0, 4);
+const page = productPage(product);
+const other = otherModeOf(product);
+const crossSell = await Promise.all(crossSellOf(product).map(async (p) => ({ p, photo: await productPhoto(p, 1) })));
+const related = PRODUCTS.filter((p) => p.slug !== product.slug && p.kind === product.kind && !crossSell.some((c) => c.p.slug === p.slug) && (filter ? filter.match(p) : true)).slice(0, 4);
 // The summary already shows the first sentences; the details list the rest.
 const details = product.description.filter((b, i) => !(i === 0 && b.type === 'p' && product.summary && b.text.startsWith(product.summary.slice(0, 40))));
 
@@ -66,8 +72,12 @@ const today = new Date().toISOString().slice(0, 10);
 
 // Pop's advice for this product.
 const isDrone = product.categories.includes('drones');
-const advice = cls ? classAdvice(cls) : undefined;
-const tip = cls
+const permis = page.permis;
+const advice = permis?.requirement ? `${permis.requirement}${permis.requirementDetail ? ` : ${permis.requirementDetail}` : ''}.` : cls ? classAdvice(cls) : undefined;
+const [popFirst, popSecond] = page.pop ?? [];
+const tip = popFirst
+  ? { pose: (rent ? (isDrone ? 'pilote' : 'livraison') : isDrone ? 'pouce' : 'loupe') as 'pilote' | 'livraison' | 'pouce' | 'loupe', title: 'Pop vous conseille', text: popFirst, action: { label: 'Poser une question', chat: 'Ce produit est-il disponible ?' } }
+  : cls && !permis
   ? { pose: classPose(cls), title: 'Le point réglementation', text: advice!, action: { label: 'Voir les formations', href: '/formations-drone-a-lyon/' } }
   : rent && isDrone
     ? { pose: 'pilote' as const, title: 'Louer un drone', text: 'Avant de confirmer, nous vérifions votre niveau de pilotage (A1/A3, A2, BAPD ou CATS selon le drone et la mission). Pas encore certifié ? Nos formations sont faites pour ça.', action: { label: 'Voir les formations', href: '/formations-drone-a-lyon/' } }
@@ -181,6 +191,53 @@ const tip = cls
             )
           }
 
+          {
+            (other || page.docs) && (
+              <ul class="links">
+                {other && (
+                  <li>
+                    <a href={productUrl(other)} class="link-strong">
+                      {other.kind === 'location' ? `Louer ce produit, dès ${formatPrice(other.priceTTC)} TTC / jour` : `Acheter ce produit, ${formatPrice(other.priceTTC)} TTC`}
+                    </a>
+                  </li>
+                )}
+                {page.docs?.spec && (
+                  <li>
+                    <a href={page.docs.spec} target="_blank" rel="noopener">
+                      Fiche technique
+                    </a>
+                  </li>
+                )}
+                {page.docs?.manual && (
+                  <li>
+                    <a href={page.docs.manual} target="_blank" rel="noopener">
+                      Manuel utilisateur{page.docs.manual.endsWith('.pdf') && ' (PDF)'}
+                    </a>
+                  </li>
+                )}
+              </ul>
+            )
+          }
+
+          {
+            crossSell.length > 0 && (
+              <div class="cross">
+                <p class="cross-title">Complétez votre équipement</p>
+                <ul>
+                  {crossSell.map(({ p, photo }) => (
+                    <li>
+                      <a href={productUrl(p)} class="cross-item">
+                        {photo && <img src={photo.src} srcset={photo.srcset} sizes="56px" alt="" width="56" height="56" loading="lazy" />}
+                        <span class="cross-name">{p.name}</span>
+                        <span class="cross-price">{formatPrice(p.priceTTC)}</span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )
+          }
+
           <PopTip pose={tip.pose} title={tip.title} action={tip.action} class="mt-8">
             {tip.text}
           </PopTip>
@@ -195,12 +252,14 @@ const tip = cls
     </div>
   </section>
 
+  <ProductStory product={product} page={page} popQuote={popSecond} />
+
   {
     details.length > 0 && (
       <section class="border-t border-line bg-paper section-pad" aria-labelledby="details-title">
         <div class="wrap grid gap-10 lg:grid-cols-12">
           <h2 id="details-title" class="display text-[clamp(1.8rem,3vw,2.6rem)] lg:col-span-4">
-            En détail
+            Description
           </h2>
           <div class="details lg:col-span-7 lg:col-start-6">
             {details.map((b) => (b.type === 'h' ? <h3>{b.text}</h3> : <p class={b.type === 'li' ? 'li' : undefined}>{b.text}</p>))}
@@ -393,6 +452,80 @@ const tip = cls
   @media (hover: hover) and (pointer: fine) {
     .submit:hover {
       filter: brightness(1.08);
+    }
+  }
+  .links {
+    display: grid;
+    gap: 8px;
+    margin-top: 22px;
+  }
+  .links a {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-color: var(--color-line);
+    text-underline-offset: 4px;
+    transition: text-decoration-color 200ms ease;
+  }
+  .links a::after {
+    content: '↗';
+    font-size: 0.85em;
+    color: var(--color-muted);
+  }
+  .links .link-strong {
+    color: var(--color-location);
+  }
+  .links .link-strong::after {
+    content: '';
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .links a:hover {
+      text-decoration-color: currentColor;
+    }
+  }
+  .cross {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--color-line);
+  }
+  .cross-title {
+    font-weight: 700;
+    font-stretch: 112%;
+  }
+  .cross ul {
+    display: grid;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .cross-item {
+    display: grid;
+    grid-template-columns: 56px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 10px 6px 6px;
+    border: 1px solid var(--color-line);
+    transition: border-color 200ms ease;
+  }
+  .cross-item img {
+    width: 56px;
+    height: 56px;
+    object-fit: contain;
+  }
+  .cross-name {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+  .cross-price {
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .cross-item:hover {
+      border-color: var(--color-ink);
     }
   }
   .assurances {

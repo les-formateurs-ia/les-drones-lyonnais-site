@@ -166,3 +166,40 @@ export const SHOP_MENU: MenuTab[] = [
   },
 ];
 export const MENU_TILES = SHOP_MENU.flatMap((t) => t.tiles);
+
+// ---------------------------------------------------------------------------
+// Rich content of each product page, imported from the current site
+// (scripts/import-product-pages.mjs → product-pages.json).
+import pagesRaw from './product-pages.json';
+
+export interface ProductPage {
+  docs?: { spec?: string; manual?: string };
+  /** Slug of the same product in the other mode (rent ↔ buy). */
+  other?: string;
+  crossSell?: string[];
+  discover?: { title: string; text?: string; stats: { value: string; label: string }[] };
+  know?: { title?: string; text?: string }[];
+  pop?: string[];
+  forWho?: { title: string; text: string }[];
+  permis?: {
+    category: string;
+    cls: string;
+    scenario?: string;
+    allowsTitle?: string;
+    allows: string[];
+    requirement?: string;
+    requirementDetail?: string;
+    formation?: { level: string; family: string; text?: string };
+  };
+}
+const PAGES = pagesRaw as Record<string, ProductPage>;
+export const productPage = (p: Product): ProductPage => PAGES[p.slug] ?? {};
+
+const key = (s: string) => norm(s).replace(/[^a-z0-9]+/g, ' ').trim();
+/** Products named in "Complétez votre équipement", found in the catalogue. */
+export const crossSellOf = (p: Product) =>
+  (productPage(p).crossSell ?? []).map((name) => PRODUCTS.find((q) => q.kind === p.kind && key(q.name) === key(name)) ?? PRODUCTS.find((q) => key(q.name) === key(name))).filter((q): q is Product => !!q && q.slug !== p.slug);
+export const otherModeOf = (p: Product) => {
+  const slug = productPage(p).other;
+  return slug && slug !== p.slug ? PRODUCTS.find((q) => q.slug === slug) : undefined;
+};

@@ -1,0 +1,367 @@
+---
+// The product's story, from the team's pages on the current site: "Découvrez le" with
+// key figures, "Ce qu'il faut savoir", "Pour qui ?" with Pop's advice, and "Quel
+// permis ?" (what the drone class allows, the certificate needed, the matching
+// training). Each section only shows when the product has that content.
+import Button from '../ui/Button.astro';
+import Square from '../ui/Square.astro';
+import PopTip, { type PopPose } from '../ui/PopTip.astro';
+import type { Product, ProductPage } from '../../data/catalog';
+import { ACTIVITIES, SITE } from '../../data/site';
+
+interface Props {
+  product: Product;
+  page: ProductPage;
+  /** Pop's advice not already shown in the buy box. */
+  popQuote?: string;
+}
+const { product, page, popQuote } = Astro.props;
+const { discover, know, forWho, permis } = page;
+const knowCards = know?.some((k) => k.title);
+
+// "OPEN" + "ARTISTIQUE" → the matching training on /formations-drone-a-lyon/.
+const formationHref = (f?: { level: string; family: string }) => {
+  if (!f) return '/formations-drone-a-lyon/';
+  const spec = /SP[EÉ]CIFIQUE/i.test(f.level);
+  const tech = /TECHNIQUE/i.test(f.family);
+  return `/formations-drone-a-lyon/#${spec ? (tech ? 'cats-btp' : 'cats-media') : tech ? 'open-bapd-btp' : 'open-bapd-media'}`;
+};
+const permisPose: PopPose = permis
+  ? /CATS/i.test(permis.requirement ?? '')
+    ? 'permis-cats'
+    : /BAPD/i.test(permis.requirement ?? '')
+      ? 'permis-bapd'
+      : 'permis-a1-a3'
+  : 'assis';
+const cap = (s: string) => s.charAt(0) + s.slice(1).toLowerCase();
+---
+
+{
+  discover && (
+    <section class="discover bg-ink text-white" aria-labelledby="discover-title">
+      <div class="wrap section-pad grid gap-12 lg:grid-cols-12 lg:items-end">
+        <div class="lg:col-span-7" data-reveal>
+          <p class="hud-text text-white/60">Découvrez le</p>
+          <h2 id="discover-title" class="display mt-3 text-[clamp(2.1rem,4.4vw,3.8rem)]">
+            {product.name}
+          </h2>
+          {discover.text && <p class="mt-6 max-w-[58ch] text-lg leading-relaxed text-white/75">{discover.text}</p>}
+          <Button href={SITE.contactPath} variant="outline-light" class="mt-8">
+            Nous contacter
+          </Button>
+        </div>
+        {discover.stats.length > 0 && (
+          <dl class="stats lg:col-span-5">
+            {discover.stats.map((s, i) => (
+              <div class="stat" data-reveal style={{ '--i': i }}>
+                <dd class="stat-value">{s.value}</dd>
+                <dt class="stat-label">{s.label}</dt>
+              </div>
+            ))}
+          </dl>
+        )}
+      </div>
+    </section>
+  )
+}
+
+{
+  know && (
+    <section class="section-pad border-t border-line bg-paper" aria-labelledby="know-title">
+      <div class="wrap">
+        <h2 id="know-title" class="display flex items-start gap-4 text-[clamp(2rem,3.6vw,3rem)]" data-reveal>
+          <Square color={product.kind === 'location' ? ACTIVITIES.location.color : 'var(--color-gold)'} class="mt-[0.5em] size-3.5 shrink-0" />
+          Ce qu’il faut savoir
+        </h2>
+        {knowCards ? (
+          <ul class="know-grid mt-12">
+            {know.map((k, i) => (
+              <li class="know-card" data-reveal style={{ '--i': i % 3 }}>
+                {k.title && <h3 class="know-title">{k.title}</h3>}
+                {k.text && <p class="know-text">{k.text}</p>}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div class="know-prose mt-10" data-reveal>
+            {know.map((k) => (
+              <p>{k.text}</p>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
+{
+  forWho && forWho.length > 0 && (
+    <section class="section-pad border-t border-line bg-mist" aria-labelledby="who-title">
+      <div class="wrap grid gap-12 lg:grid-cols-12">
+        <div class="lg:col-span-7">
+          <h2 id="who-title" class="display flex items-start gap-4 text-[clamp(2rem,3.6vw,3rem)]" data-reveal>
+            <Square color="var(--color-gold)" class="mt-[0.5em] size-3.5 shrink-0" />
+            Pour qui ?
+          </h2>
+          <ul class="who mt-10">
+            {forWho.map((w, i) => (
+              <li data-reveal style={{ '--i': i }}>
+                <h3 class="who-title">{w.title}</h3>
+                <p class="who-text">{w.text}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+        {popQuote && (
+          <div class="lg:col-span-5 lg:self-end">
+            <PopTip pose="coucou" title="Pop vous conseille">
+              {popQuote}
+            </PopTip>
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
+{
+  permis && (
+    <section class="permis section-pad border-t border-line bg-paper" aria-labelledby="permis-title">
+      <div class="wrap">
+        <h2 id="permis-title" class="display flex items-start gap-4 text-[clamp(2rem,3.6vw,3rem)]" data-reveal>
+          <Square color={ACTIVITIES.formations.color} class="mt-[0.5em] size-3.5 shrink-0" />
+          Quel permis ?
+        </h2>
+
+        <div class="permis-grid mt-12">
+          <div class="permis-id" data-reveal>
+            <span class="permis-class">{permis.cls}</span>
+            <ul class="permis-tags">
+              <li>Catégorie {cap(permis.category)}</li>
+              <li>EASA</li>
+              {permis.scenario && <li>Scénario {permis.scenario}</li>}
+            </ul>
+          </div>
+
+          <div class="permis-allows" data-reveal style={{ '--i': 1 }}>
+            {permis.allowsTitle && <h3 class="permis-h">{permis.allowsTitle}</h3>}
+            <ul>
+              {permis.allows.map((a) => (
+                <li>{a}</li>
+              ))}
+            </ul>
+          </div>
+
+          <div class="permis-need" data-reveal style={{ '--i': 2 }}>
+            {permis.requirement && <h3 class="permis-h">{permis.requirement}</h3>}
+            {permis.requirementDetail && <p class="permis-detail">{permis.requirementDetail}</p>}
+            {permis.formation?.text && <p class="permis-detail">{permis.formation.text}</p>}
+            <Button href={formationHref(permis.formation)} size="sm" class="mt-5">
+              Voir la formation {permis.formation ? `${cap(permis.formation.level)}, ${permis.formation.family.toLowerCase()}` : ''}
+            </Button>
+          </div>
+
+          <PopTip pose={permisPose} title="Besoin d’y voir clair ?" action={{ label: 'Demander à Pop', chat: 'Faut-il une formation ?' }} class="permis-pop">
+            Je vous explique ce que ce drone permet et la formation qui va avec.
+          </PopTip>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+<style>
+  /* Discover */
+  .stats {
+    display: grid;
+    gap: 2px;
+  }
+  .stat {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 18px 0;
+    border-bottom: 1px solid rgb(255 255 255 / 0.14);
+  }
+  .stat-value {
+    font-size: clamp(2rem, 4vw, 3.2rem);
+    font-weight: 800;
+    font-stretch: 125%;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    color: var(--color-gold);
+  }
+  .stat-label {
+    text-align: right;
+    color: rgb(255 255 255 / 0.7);
+  }
+
+  /* Ce qu'il faut savoir */
+  .know-grid {
+    display: grid;
+    gap: 1px;
+    background: var(--color-line);
+    border: 1px solid var(--color-line);
+  }
+  @media (min-width: 640px) {
+    .know-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (min-width: 1024px) {
+    .know-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+  .know-card {
+    padding: 28px;
+    background: var(--color-paper);
+    transition: background-color 200ms ease;
+  }
+  .know-card::before {
+    content: '';
+    display: block;
+    width: 28px;
+    height: 2px;
+    margin-bottom: 18px;
+    background: var(--color-gold);
+    transition: width 400ms var(--ease-out-strong);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .know-card:hover::before {
+      width: 56px;
+    }
+  }
+  .know-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    font-stretch: 112%;
+    line-height: 1.25;
+  }
+  .know-text {
+    margin-top: 8px;
+    line-height: 1.55;
+    color: var(--color-ink-soft);
+  }
+  .know-prose {
+    display: grid;
+    gap: 14px;
+    max-width: 70ch;
+    font-size: 1.05rem;
+    line-height: 1.7;
+    color: var(--color-ink-soft);
+  }
+
+  /* Pour qui ? */
+  .who {
+    display: grid;
+    gap: 24px;
+  }
+  @media (min-width: 640px) {
+    .who {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  .who li {
+    padding-top: 16px;
+    border-top: 2px solid var(--color-ink);
+  }
+  .who-title {
+    font-weight: 700;
+    font-stretch: 112%;
+  }
+  .who-text {
+    margin-top: 6px;
+    line-height: 1.55;
+    color: var(--color-ink-soft);
+  }
+
+  /* Quel permis ? */
+  .permis-grid {
+    display: grid;
+    gap: 20px;
+  }
+  @media (min-width: 1024px) {
+    .permis-grid {
+      grid-template-columns: 3fr 4fr 5fr;
+      align-items: stretch;
+    }
+    .permis-grid :global(.permis-pop) {
+      grid-column: 2 / -1;
+    }
+  }
+  .permis-id,
+  .permis-allows,
+  .permis-need {
+    padding: 28px;
+    border: 1px solid var(--color-line);
+  }
+  .permis-id {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 24px;
+    color: #fff;
+    background: var(--color-ink);
+    border-color: var(--color-ink);
+  }
+  .permis-class {
+    font-size: clamp(4rem, 9vw, 7rem);
+    font-weight: 800;
+    font-stretch: 125%;
+    line-height: 0.9;
+    color: var(--color-gold);
+  }
+  .permis-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .permis-tags li {
+    padding: 4px 10px;
+    border: 1px solid rgb(255 255 255 / 0.3);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .permis-h {
+    font-size: 1.15rem;
+    font-weight: 700;
+    font-stretch: 112%;
+    line-height: 1.25;
+  }
+  .permis-allows ul {
+    display: grid;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .permis-allows li {
+    position: relative;
+    padding-left: 18px;
+    line-height: 1.45;
+    color: var(--color-ink-soft);
+  }
+  .permis-allows li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.6em;
+    width: 6px;
+    height: 6px;
+    background: var(--color-formations);
+  }
+  .permis-need {
+    background: color-mix(in srgb, var(--color-formations) 6%, white);
+    border-color: color-mix(in srgb, var(--color-formations) 30%, white);
+  }
+  .permis-detail {
+    margin-top: 10px;
+    line-height: 1.5;
+    color: var(--color-ink-soft);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .know-card::before {
+      transition: none;
+    }
+  }
+</style>

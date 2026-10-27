@@ -25,6 +25,15 @@ const decode = (s = '') =>
     .replace(/&lsquo;/g, '‘')
     .replace(/&hellip;/g, '…');
 const text = (html = '') => decode(html.replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();
+// Whole sentences only, up to about `max` characters.
+const firstSentences = (t, max) => {
+  let out = '';
+  for (const sentence of t.split(/(?<=[.!?])\s/)) {
+    if (out && out.length + sentence.length > max) break;
+    out = out ? `${out} ${sentence}` : sentence;
+  }
+  return out;
+};
 // Keeps paragraphs and list items of the description as plain blocks.
 const blocks = (html = '') =>
   [...html.matchAll(/<(p|li|h[2-4])[^>]*>([\s\S]*?)<\/\1>/g)]
@@ -91,7 +100,7 @@ for (const p of all) {
     priceHT: Math.round(ht * 100) / 100,
     priceTTC: Math.round(ht * 1.2 * 100) / 100,
     categories: p.categories.map((c) => c.slug),
-    summary: text(p.short_description) || text(p.description).split(/(?<=[.!?])\s/).slice(0, 2).join(' ').slice(0, 260),
+    summary: text(p.short_description) || firstSentences(text(p.description), 280),
     description: blocks(p.description),
     images,
   });

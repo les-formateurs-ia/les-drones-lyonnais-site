@@ -116,7 +116,12 @@ Skills: `ldl-art-direction` (identity), `seo-production`, `visual-qa`,
 - `/produit/<slug>/` for all 152 products (same URLs as WordPress). Catalogue imported
   from the WooCommerce Store API by `node scripts/import-catalog.mjs` →
   src/data/catalog.json + src/assets/products/ (prices HT; TTC = ×1.2; rentals per day).
-  Filters in src/data/catalog.ts. Sale CTA = order request, rental = dates + estimate +
+  Filters in src/data/catalog.ts. The team's per-product content (docs, rent/buy link,
+  "Complétez votre équipement", "Découvrez le" + figures, "Ce qu'il faut savoir", "Pop
+  vous conseille", "Pour qui ?", "Quel permis ?") is imported by
+  `node scripts/import-product-pages.mjs` → src/data/product-pages.json and shown by
+  components/shop/ProductStory.astro. Their "Quel permis ?" wins over the generic
+  data/regulation.ts advice. Sale CTA = order request, rental = dates + estimate +
   booking request, both to /contact/ until the Stripe Worker exists.
 
 Next: /contact/ (receives ?commande=, ?location=&du=&au=, ?formation=), Stripe checkout
