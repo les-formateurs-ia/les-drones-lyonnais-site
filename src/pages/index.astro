@@ -7,6 +7,7 @@ import Manifesto from '../components/home/Manifesto.astro';
 import ClientLogos from '../components/home/ClientLogos.astro';
 import Services from '../components/home/Services.astro';
 import Team from '../components/home/Team.astro';
+import TeamGrid from '../components/home/TeamGrid.astro';
 import Commitments from '../components/home/Commitments.astro';
 import FinalCta from '../components/home/FinalCta.astro';
 import equipe from '../assets/images/equipe.jpg';
@@ -47,6 +48,8 @@ const organization = {
     <ClientLogos />
     <Services />
     <Team />
+    <!-- Variant to compare with the pinned team above. -->
+    <TeamGrid />
     <Commitments />
     <FinalCta />
   </div>
