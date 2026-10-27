@@ -1,28 +1,49 @@
 ---
 // Services, variant (to compare with Services.astro): artistic on the left, technical on
 // the right, a 3D drone in the middle cut in two at the border between them — the
-// artistic half in graphite and gold, the technical half as a blueprint. Pointing at a
-// side widens it; the drone stays centred on the cut. Pointing at a service
-// shows its photo as the panel's background and unfolds its description.
+// artistic half in graphite and gold, the technical half as a blueprint. Everything
+// around it is motion, no photos: warm drifting light and bokeh on the artistic side, a
+// living blueprint (grid, contour lines being drawn, scan line) on the technical side.
+// Pointing at a side widens it; the drone stays centred on the cut and casts a split
+// halo. Pointing at a service unfolds its description and writes its name, very large,
+// behind the list.
 import SectionHeader from '../ui/SectionHeader.astro';
 import Square from '../ui/Square.astro';
-import SensorFilters from '../ui/SensorFilters.astro';
-import { servicePhoto } from '../../lib/service-photo';
 import { FAMILIES, servicesOf, type ServiceFamily } from '../../data/services';
 import { ACTIVITIES } from '../../data/site';
 
-const sides: { family: ServiceFamily; label: string; backdrop: string }[] = [
-  { family: 'artistique', label: 'Artistique', backdrop: 'cinema.jpg' },
-  { family: 'technique', label: 'Technique', backdrop: 'topographie.jpg' },
+const sides: { family: ServiceFamily; label: string }[] = [
+  { family: 'artistique', label: 'Artistique' },
+  { family: 'technique', label: 'Technique' },
 ];
-const data = await Promise.all(
-  sides.map(async (side) => ({
-    ...side,
-    info: FAMILIES[side.family],
-    backdrop: await servicePhoto(side.backdrop),
-    services: await Promise.all(servicesOf(side.family).map(async (s) => ({ ...s, photo: await servicePhoto(s.image) }))),
-  })),
-);
+const data = sides.map((side) => ({ ...side, info: FAMILIES[side.family], services: servicesOf(side.family) }));
+
+// Topographic contour lines for the technical side: wobbly closed curves around a few
+// summits, computed once at build time (deterministic).
+const contours: string[] = [];
+for (const [cx, cy, n] of [
+  [620, 260, 7],
+  [880, 640, 6],
+  [300, 700, 5],
+]) {
+  for (let k = 1; k <= n; k++) {
+    const r = k * 42;
+    let d = '';
+    for (let i = 0; i <= 72; i++) {
+      const a = (i / 72) * Math.PI * 2;
+      const w = 1 + 0.16 * Math.sin(a * 3 + k + cx) + 0.09 * Math.sin(a * 5 - k * 1.7 + cy);
+      d += `${i ? 'L' : 'M'}${(cx + Math.cos(a) * r * w * 1.25).toFixed(1)} ${(cy + Math.sin(a) * r * w).toFixed(1)}`;
+    }
+    contours.push(d + 'Z');
+  }
+}
+// Bokeh for the artistic side: position, size, delay (deterministic).
+const bokeh = Array.from({ length: 14 }, (_, i) => ({
+  x: (i * 37) % 100,
+  y: (i * 53 + 11) % 100,
+  s: 40 + ((i * 29) % 110),
+  d: -((i * 1.7) % 12),
+}));
 ---
 
 <section aria-labelledby="split-title" class="split-section bg-ink text-white">
@@ -37,11 +58,27 @@ const data = await Promise.all(
       data.map((side) => (
         <div class="side" data-side={side.family}>
           <div class="bg" aria-hidden="true">
-            <img class="bg-base" src={side.backdrop.src} srcset={side.backdrop.srcset} sizes="60vw" alt="" loading="lazy" decoding="async" />
-            {side.services.map((s, i) => (
-              <img class="bg-shot" data-shot={i} src={s.photo.src} srcset={s.photo.srcset} sizes="60vw" alt="" loading="lazy" decoding="async" />
-            ))}
-            <span class="veil" />
+            {side.family === 'artistique' ? (
+              <>
+                <span class="glow g1" />
+                <span class="glow g2" />
+                {bokeh.map((o) => (
+                  <span class="bokeh" style={{ left: `${o.x}%`, top: `${o.y}%`, '--s': `${o.s}px`, animationDelay: `${o.d}s` }} />
+                ))}
+                <span class="grain" />
+              </>
+            ) : (
+              <>
+                <span class="grid" />
+                <svg class="topo" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid slice">
+                  {contours.map((d, i) => (
+                    <path d={d} pathLength="1" style={{ '--k': i }} />
+                  ))}
+                </svg>
+                <span class="scan" />
+              </>
+            )}
+            <span class="ghost" data-ghost />
           </div>
 
           <div class="content">
@@ -53,7 +90,7 @@ const data = await Promise.all(
             <ul class="list">
               {side.services.map((s, i) => (
                 <li>
-                  <a href={s.href} class="item" data-item={i}>
+                  <a href={s.href} class="item" data-item={i} data-label={s.label}>
                     <span class="item-label">{s.label}</span>
                     <span class="item-desc">
                       <span>{s.summary}</span>
@@ -72,7 +109,6 @@ const data = await Promise.all(
       <span class="cut"></span>
     </div>
   </div>
-  <SensorFilters />
 </section>
 
 <style>
@@ -95,56 +131,175 @@ const data = await Promise.all(
     flex-grow: 1.4;
   }
 
-  .bg,
-  .bg img,
-  .veil {
+  .bg {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+  [data-side='artistique'] .bg {
+    background: radial-gradient(ellipse at 30% 40%, #1e140a, #0a0806 70%);
+  }
+  [data-side='technique'] .bg {
+    background: radial-gradient(ellipse at 70% 40%, #071a2c, #030a14 70%);
+  }
+
+  /* Artistic: warm light drifting like a slow camera move, bokeh, film grain. */
+  .glow {
+    position: absolute;
+    width: 70%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    filter: blur(60px);
+    opacity: 0.5;
+    animation: drift 18s ease-in-out infinite alternate;
+  }
+  .g1 {
+    left: -10%;
+    top: 5%;
+    background: radial-gradient(circle, #c98d3c, transparent 65%);
+  }
+  .g2 {
+    left: 30%;
+    top: 45%;
+    background: radial-gradient(circle, #8a3b2a, transparent 65%);
+    animation-duration: 24s;
+    animation-direction: alternate-reverse;
+  }
+  @keyframes drift {
+    to {
+      transform: translate(12%, 10%) scale(1.15);
+    }
+  }
+  .bokeh {
+    position: absolute;
+    width: var(--s);
+    height: var(--s);
+    border-radius: 50%;
+    background: radial-gradient(circle, rgb(255 210 150 / 0.35), rgb(255 210 150 / 0.08) 60%, transparent 70%);
+    box-shadow: inset 0 0 0 1px rgb(255 220 170 / 0.12);
+    animation: float 12s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%,
+    100% {
+      transform: translate(0, 0);
+      opacity: 0.35;
+    }
+    50% {
+      transform: translate(18px, -24px);
+      opacity: 0.85;
+    }
+  }
+  .grain {
+    position: absolute;
+    inset: -50%;
+    opacity: 0.09;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    animation: grain 0.6s steps(4) infinite;
+  }
+  @keyframes grain {
+    25% {
+      transform: translate(-3%, 2%);
+    }
+    50% {
+      transform: translate(2%, -3%);
+    }
+    75% {
+      transform: translate(-2%, -1%);
+    }
+  }
+
+  /* Technical: a living blueprint. */
+  .grid {
+    position: absolute;
+    inset: -80px;
+    background:
+      linear-gradient(rgb(159 211 255 / 0.09) 1px, transparent 1px) 0 0 / 40px 40px,
+      linear-gradient(90deg, rgb(159 211 255 / 0.09) 1px, transparent 1px) 0 0 / 40px 40px,
+      linear-gradient(rgb(159 211 255 / 0.05) 1px, transparent 1px) 0 0 / 8px 8px,
+      linear-gradient(90deg, rgb(159 211 255 / 0.05) 1px, transparent 1px) 0 0 / 8px 8px;
+    animation: grid-move 20s linear infinite;
+  }
+  @keyframes grid-move {
+    to {
+      transform: translate(40px, 40px);
+    }
+  }
+  .topo {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
   }
-  .bg img {
-    object-fit: cover;
+  .topo path {
+    fill: none;
+    stroke: rgb(159 211 255 / 0.32);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: draw 9s ease-in-out infinite;
+    animation-delay: calc(var(--k) * 0.35s);
   }
-  .bg-base {
-    transition: opacity 600ms ease;
+  @keyframes draw {
+    0% {
+      stroke-dashoffset: 1;
+    }
+    45%,
+    80% {
+      stroke-dashoffset: 0;
+    }
+    100% {
+      stroke-dashoffset: -1;
+    }
   }
-  [data-side='artistique'] .bg-base {
-    filter: sepia(0.35) saturate(1.2) brightness(0.55);
+  .scan {
+    position: absolute;
+    inset: 0 0 auto;
+    height: 120px;
+    background: linear-gradient(rgb(159 211 255 / 0), rgb(159 211 255 / 0.12) 85%, rgb(159 211 255 / 0.6) 100%);
+    animation: scan 6s linear infinite;
   }
-  /* The technical side reads as a survey drawing over a blueprint grid. */
-  [data-side='technique'] .bg-base {
-    filter: url(#sensor-survey);
-    opacity: 0.7;
+  @keyframes scan {
+    from {
+      transform: translateY(-120px);
+    }
+    to {
+      transform: translateY(100vh);
+    }
   }
-  [data-side='technique'] .bg {
-    background:
-      linear-gradient(rgb(159 211 255 / 0.08) 1px, transparent 1px) 0 0 / 40px 40px,
-      linear-gradient(90deg, rgb(159 211 255 / 0.08) 1px, transparent 1px) 0 0 / 40px 40px,
-      #06121f;
-  }
-  .bg-shot {
+
+  /* The service being pointed at, written very large behind the list. */
+  .ghost {
+    position: absolute;
+    bottom: 6%;
+    left: 0;
+    white-space: nowrap;
+    font-size: clamp(5rem, 11vw, 11rem);
+    font-weight: 800;
+    font-stretch: 125%;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    color: transparent;
     opacity: 0;
-    transform: scale(1.05);
+    transform: translateX(6%);
     transition:
-      opacity 500ms ease,
-      transform 1200ms var(--ease-out-strong);
+      opacity 400ms ease,
+      transform 900ms var(--ease-out-strong);
   }
-  .bg-shot.is-on {
+  [data-side='artistique'] .ghost {
+    -webkit-text-stroke: 1px rgb(201 150 67 / 0.45);
+  }
+  [data-side='technique'] .ghost {
+    left: auto;
+    right: 0;
+    transform: translateX(-6%);
+    -webkit-text-stroke: 1px rgb(159 211 255 / 0.45);
+  }
+  .side.has-ghost .ghost {
     opacity: 1;
     transform: none;
-  }
-  .side.has-shot .bg-base {
-    opacity: 0;
-  }
-  .veil {
-    pointer-events: none;
-  }
-  [data-side='artistique'] .veil {
-    background: linear-gradient(90deg, rgb(0 0 0 / 0.85), rgb(0 0 0 / 0.35) 70%, rgb(0 0 0 / 0.6));
-  }
-  [data-side='technique'] .veil {
-    background: linear-gradient(270deg, rgb(3 10 20 / 0.88), rgb(3 10 20 / 0.35) 70%, rgb(3 10 20 / 0.6));
   }
 
   /* ---------- Content ---------- */
@@ -251,16 +406,59 @@ const data = await Promise.all(
     z-index: 1;
     pointer-events: none;
   }
-  /* A dark halo behind the drone so it stands out from the photos. */
+  /* The drone's halo on the ground: gold on the artistic half, blue on the technical one,
+     split at the cut, slowly pulsing. */
   .stage::before {
     content: '';
     position: absolute;
-    top: 50%;
+    top: 64%;
     left: calc(var(--split, 0.5) * 100%);
-    width: min(56vw, 760px);
-    aspect-ratio: 1.4;
+    width: min(44vw, 620px);
+    aspect-ratio: 3.2;
     translate: -50% -50%;
-    background: radial-gradient(closest-side, rgb(0 0 0 / 0.7), rgb(0 0 0 / 0));
+    border-radius: 50%;
+    background:
+      radial-gradient(closest-side, transparent 55%, rgb(0 0 0 / 0) 100%),
+      linear-gradient(90deg, rgb(201 150 67 / 0.5) 50%, rgb(120 190 255 / 0.5) 50%);
+    -webkit-mask-image: radial-gradient(closest-side, #000, transparent);
+    mask-image: radial-gradient(closest-side, #000, transparent);
+    filter: blur(10px);
+    animation: halo 4s ease-in-out infinite;
+  }
+  .stage::after {
+    content: '';
+    position: absolute;
+    top: 64%;
+    left: calc(var(--split, 0.5) * 100%);
+    width: min(36vw, 500px);
+    aspect-ratio: 3.2;
+    translate: -50% -50%;
+    border-radius: 50%;
+    border: 1px solid transparent;
+    background: linear-gradient(90deg, var(--color-gold) 50%, #9fd3ff 50%) border-box;
+    -webkit-mask:
+      linear-gradient(#000 0 0) padding-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0.6;
+    animation: ripple 4s ease-out infinite;
+  }
+  @keyframes halo {
+    50% {
+      opacity: 0.6;
+      transform: scale(0.94);
+    }
+  }
+  @keyframes ripple {
+    from {
+      transform: scale(0.6);
+      opacity: 0.8;
+    }
+    to {
+      transform: scale(1.25);
+      opacity: 0;
+    }
   }
   .drone {
     position: absolute;
@@ -317,10 +515,23 @@ const data = await Promise.all(
 
   @media (prefers-reduced-motion: reduce) {
     .side,
-    .bg-shot,
+    .ghost,
     .item-label,
     .item-desc {
       transition: none;
+    }
+    .glow,
+    .bokeh,
+    .grain,
+    .grid,
+    .topo path,
+    .scan,
+    .stage::before,
+    .stage::after {
+      animation: none;
+    }
+    .topo path {
+      stroke-dashoffset: 0;
     }
   }
 </style>
@@ -350,14 +561,14 @@ const data = await Promise.all(
       drone?.setPointer(0, 0);
     });
 
-    // Services: pointing at one shows its photo and description.
+    // Services: pointing at one unfolds its description and writes its name behind.
     split.querySelectorAll<HTMLElement>('[data-side]').forEach((side) => {
       const items = [...side.querySelectorAll<HTMLElement>('.item')];
-      const shots = [...side.querySelectorAll<HTMLElement>('.bg-shot')];
+      const ghost = side.querySelector<HTMLElement>('[data-ghost]')!;
       const show = (i: number | null) => {
         items.forEach((it, k) => it.classList.toggle('is-on', k === i));
-        shots.forEach((s, k) => s.classList.toggle('is-on', k === i));
-        side.classList.toggle('has-shot', i !== null);
+        if (i !== null) ghost.textContent = items[i].dataset.label!;
+        side.classList.toggle('has-ghost', i !== null);
       };
       items.forEach((it, i) => {
         it.addEventListener('pointerenter', () => wide.matches && show(i));
