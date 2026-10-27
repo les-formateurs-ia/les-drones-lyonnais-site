@@ -119,11 +119,13 @@ const bokeh = Array.from({ length: 14 }, (_, i) => ({
   }
 
   /* ---------- Sides ---------- */
+  .split {
+    overflow: hidden;
+  }
   .side {
     position: relative;
     flex: 1 1 0;
     min-width: 0;
-    overflow: hidden;
     transition: flex-grow 800ms var(--ease-out-strong);
   }
   .split[data-hover='artistique'] [data-side='artistique'],
@@ -131,10 +133,23 @@ const bokeh = Array.from({ length: 14 }, (_, i) => ({
     flex-grow: 1.4;
   }
 
+  /* Each background runs past the border and fades out, so the two worlds blend into
+     each other instead of meeting on a hard edge. */
   .bg {
     position: absolute;
     inset: 0;
     overflow: hidden;
+    --blend: clamp(160px, 18vw, 300px);
+  }
+  [data-side='artistique'] .bg {
+    right: calc(var(--blend) * -1);
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - var(--blend) * 2), transparent);
+    mask-image: linear-gradient(90deg, #000 calc(100% - var(--blend) * 2), transparent);
+  }
+  [data-side='technique'] .bg {
+    left: calc(var(--blend) * -1);
+    -webkit-mask-image: linear-gradient(270deg, #000 calc(100% - var(--blend) * 2), transparent);
+    mask-image: linear-gradient(270deg, #000 calc(100% - var(--blend) * 2), transparent);
   }
   [data-side='artistique'] .bg {
     background: radial-gradient(ellipse at 30% 40%, #1e140a, #0a0806 70%);
@@ -472,11 +487,16 @@ const bokeh = Array.from({ length: 14 }, (_, i) => ({
     bottom: 0;
     left: calc(var(--split, 0.5) * 100%);
     width: 1px;
-    background: linear-gradient(transparent, var(--color-gold) 25%, var(--color-gold) 75%, transparent);
+    background: linear-gradient(transparent 15%, rgb(201 150 67 / 0.45) 45%, rgb(201 150 67 / 0.45) 75%, transparent 95%);
   }
 
   /* ---------- Small screens: drone on top, both lists stacked ---------- */
   @media (max-width: 1023px) {
+    [data-side] .bg {
+      inset: 0;
+      -webkit-mask-image: linear-gradient(transparent, #000 120px, #000 calc(100% - 120px), transparent);
+      mask-image: linear-gradient(transparent, #000 120px, #000 calc(100% - 120px), transparent);
+    }
     .split {
       flex-direction: column;
       min-height: 0;
