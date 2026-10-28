@@ -16,10 +16,38 @@ export interface Formation {
   scope: string;
   summary: string;
   duration: string;
+  /** What you need before starting. */
+  prerequisite: string;
+  /** Other facts, shown as ticks (certification, format…). */
   facts: string[];
   /** Photo in src/assets/services, used on the hero cards. */
   image: string;
 }
+
+/** The three steps of a path, explained once above the catalogues. */
+export const LEVEL_GUIDE: Record<FormationLevel, { step: number; name: string; short: string; allows: string; forWho: string }> = {
+  open: {
+    step: 1,
+    name: 'Catégorie Open',
+    short: 'BAPD',
+    allows: 'Le brevet d’aptitude de pilote à distance : la base pour voler en professionnel, scénarios A1, A2 et A3.',
+    forWho: 'Vous débutez',
+  },
+  specifique: {
+    step: 2,
+    name: 'Catégorie Spécifique',
+    short: 'CATS',
+    allows: 'Le certificat pour les scénarios STS-01 et STS-02, avec un drone de classe C5 ou C6, dans des zones plus exigeantes.',
+    forWho: 'Vous voulez aller plus loin',
+  },
+  specialisation: {
+    step: 3,
+    name: 'Spécialisation',
+    short: 'Métier',
+    allows: 'Une compétence métier précise : thermographie, 3D, pulvérisation, cadrage ou production audiovisuelle.',
+    forWho: 'Vous êtes déjà pilote',
+  },
+};
 
 export const LEVEL_LABEL: Record<FormationLevel, string> = {
   open: 'Catégorie Open',
@@ -51,7 +79,8 @@ export const FORMATIONS: Formation[] = [
     scope: 'BTP et génie civil, scénarios A1, A2 et A3',
     summary: 'La certification de référence pour piloter un drone professionnel en catégorie Open dans le secteur du BTP et du génie civil.',
     duration: '42 heures',
-    facts: ['Tous niveaux', 'Certification incluse'],
+    prerequisite: 'Aucun, tous niveaux',
+    facts: ['Certification incluse'],
     image: 'topographie.jpg',
   },
   {
@@ -62,7 +91,8 @@ export const FORMATIONS: Formation[] = [
     scope: 'BTP et génie civil, scénarios STS-01 et STS-02',
     summary: 'La certification de référence pour piloter un drone professionnel en catégorie Spécifique dans le secteur du BTP et du génie civil.',
     duration: '5 jours',
-    facts: ['Tous niveaux', 'Certification incluse'],
+    prerequisite: 'Aucun, tous niveaux',
+    facts: ['Certification incluse'],
     image: 'inspection-visuelle.jpg',
   },
   {
@@ -73,7 +103,8 @@ export const FORMATIONS: Formation[] = [
     scope: 'Spécialisation technique',
     summary: 'Maîtrisez l’inspection thermique par drone et l’analyse des données pour détecter les anomalies.',
     duration: '5 jours',
-    facts: ['BAPD ou CATS requis'],
+    prerequisite: 'BAPD ou CATS',
+    facts: [],
     image: 'inspection-thermique.jpg',
   },
   {
@@ -84,7 +115,8 @@ export const FORMATIONS: Formation[] = [
     scope: 'Spécialisation technique',
     summary: 'Apprenez à préparer et réaliser des missions de pulvérisation par drone en toute sécurité.',
     duration: '5 jours',
-    facts: ['CATS requis'],
+    prerequisite: 'CATS',
+    facts: [],
     image: 'demoussage.jpg',
   },
   {
@@ -95,7 +127,8 @@ export const FORMATIONS: Formation[] = [
     scope: 'Spécialisation technique',
     summary: 'Maîtrisez l’acquisition et le traitement des données pour créer des modèles 3D précis au centimètre près.',
     duration: '5 jours',
-    facts: ['BAPD ou CATS requis'],
+    prerequisite: 'BAPD ou CATS',
+    facts: [],
     image: 'modelisation-3d.jpg',
   },
   {
@@ -106,7 +139,8 @@ export const FORMATIONS: Formation[] = [
     scope: 'Média et communication, scénarios A1, A2 et A3',
     summary: 'Certification drone dédiée aux métiers de l’image, de la communication et de l’audiovisuel, en catégorie Open.',
     duration: '42 heures',
-    facts: ['En présentiel', 'Certification incluse'],
+    prerequisite: 'Aucun',
+    facts: ['Certification incluse', 'En présentiel'],
     image: 'cinema.jpg',
   },
   {
@@ -117,7 +151,8 @@ export const FORMATIONS: Formation[] = [
     scope: 'Image et son, scénarios STS-01 et STS-02',
     summary: 'Maîtrisez la prise de vue aérienne professionnelle pour opérer en catégorie Spécifique.',
     duration: '5 jours',
-    facts: ['En présentiel', 'Certification incluse'],
+    prerequisite: 'Aucun',
+    facts: ['Certification incluse', 'En présentiel'],
     image: 'live.jpg',
   },
   {
@@ -128,7 +163,8 @@ export const FORMATIONS: Formation[] = [
     scope: 'Cadrage, trajectoires, créativité',
     summary: 'Perfectionnez votre cadrage, vos trajectoires et votre créativité pour produire des images à forte valeur ajoutée.',
     duration: '5 jours',
-    facts: ['Expérience requise'],
+    prerequisite: 'Expérience de pilotage',
+    facts: [],
     image: 'fpv.jpg',
   },
   {
@@ -139,6 +175,7 @@ export const FORMATIONS: Formation[] = [
     scope: 'Tournage, montage, diffusion',
     summary: 'Une formation complète aux métiers de la production : tournage, drone, montage vidéo et diffusion.',
     duration: '10 jours',
+    prerequisite: 'Aucun',
     facts: ['Certification DGAC'],
     image: 'post-production.jpg',
   },

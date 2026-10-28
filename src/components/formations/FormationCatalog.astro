@@ -1,12 +1,13 @@
 ---
-// One family of trainings, as a path: certification for the Open category, then the
-// Specific category, then the specialisations. Each training is a card with its
-// duration in large type; the line on the left shows the progression.
+// One family of trainings, in the order of the path explained by FormationGuide:
+// the two certifications side by side (step 1 → step 2), then the specialisations
+// (step 3). Each training is a fact sheet: photo with its step, title, objective, then
+// the same labelled facts on every card (duration, prerequisite) and what is included.
 import SectionHeader from '../ui/SectionHeader.astro';
 import Button from '../ui/Button.astro';
-import PopTip from '../ui/PopTip.astro';
-import { FORMATION_FAMILIES, LEVEL_LABEL, formationsOf, type FormationFamily, type FormationLevel } from '../../data/formations';
+import { FORMATION_FAMILIES, LEVEL_GUIDE, formationsOf, type FormationFamily } from '../../data/formations';
 import { ACTIVITIES, SITE } from '../../data/site';
+import { servicePhoto } from '../../lib/service-photo';
 
 interface Props {
   family: FormationFamily;
@@ -14,194 +15,281 @@ interface Props {
 }
 const { family, dark = false } = Astro.props;
 const info = FORMATION_FAMILIES[family];
-const levels: FormationLevel[] = ['open', 'specifique', 'specialisation'];
-const byLevel = levels.map((level) => ({ level, items: formationsOf(family).filter((f) => f.level === level) }));
+const all = await Promise.all(formationsOf(family).map(async (f) => ({ ...f, photo: await servicePhoto(f.image, 16 / 9) })));
+const certs = all.filter((f) => f.level !== 'specialisation');
+const specs = all.filter((f) => f.level === 'specialisation');
+const groups = [
+  { key: 'certs', title: 'Les certifications', steps: 'Étapes 1 et 2', items: certs },
+  { key: 'specs', title: 'Les spécialisations', steps: 'Étape 3', items: specs },
+];
 ---
 
-<section id={family} aria-labelledby={`${family}-title`} class:list={['formations section-pad scroll-mt-16', dark ? 'bg-ink text-white' : 'bg-paper']}>
+<section id={family} aria-labelledby={`${family}-title`} class:list={['formations section-pad scroll-mt-16', dark ? 'is-dark bg-ink text-white' : 'bg-paper']}>
   <div class="wrap">
     <SectionHeader id={`${family}-title`} title={info.title} color={ACTIVITIES.formations.color} dark={dark}>
       <p class:list={['font-semibold', dark ? 'text-white' : 'text-ink']}>{info.tagline}, {info.certification}</p>
       <p class="max-w-[46ch]">{info.description}</p>
     </SectionHeader>
 
-    <ol class="path mt-14 lg:mt-20">
-      {
-        byLevel.map(({ level, items }, li) => (
-          <li class="level" data-reveal style={{ '--i': li }}>
-            <p class="level-label hud-text">
-              <span class="level-dot" aria-hidden="true" />
-              {LEVEL_LABEL[level]}
-            </p>
-            <ul class:list={['cards', items.length > 1 && 'cards-many']}>
-              {items.map((f) => (
-                <li class:list={['card', dark && 'card-dark']} id={f.id}>
-                  <p class="duration">{f.duration}</p>
-                  <h3 class="title">{f.title}</h3>
-                  <p class="scope">{f.scope}</p>
-                  <p class="summary">{f.summary}</p>
-                  <ul class="facts">
-                    {f.facts.map((fact) => (
-                      <li>{fact}</li>
-                    ))}
-                  </ul>
-                  <Button href={`${SITE.contactPath}?formation=${f.id}`} variant={dark ? 'outline-light' : 'outline'} size="sm" class="mt-auto self-start">
-                    Demander le programme
-                  </Button>
+    {
+      groups.map((g) => (
+        <div class="group">
+          <p class="group-head" data-reveal>
+            <span class="hud-text">{g.steps}</span>
+            <b>{g.title}</b>
+          </p>
+          <ul class:list={['cards', `cards-${g.key}`]}>
+            {g.items.map((f, i) => {
+              const l = LEVEL_GUIDE[f.level];
+              const cpf = f.level !== 'specialisation';
+              return (
+                <li class="card" id={f.id} data-reveal style={{ '--i': i }}>
+                  <div class="media">
+                    <img src={f.photo.src} srcset={f.photo.srcset} sizes="(min-width: 1024px) 40vw, 92vw" alt="" width={f.photo.width} height={f.photo.height} loading="lazy" decoding="async" />
+                    <span class="step hud-text">
+                      <b>{l.step}</b> {l.name}
+                    </span>
+                    {cpf && <span class="cpf hud-text">Éligible CPF</span>}
+                  </div>
+                  <div class="body">
+                    <h3 class="title">{f.title}</h3>
+                    <p class="scope">{f.scope}</p>
+                    <p class="summary">{f.summary}</p>
+                    <dl class="specs">
+                      <div>
+                        <dt class="hud-text">Durée</dt>
+                        <dd>{f.duration}</dd>
+                      </div>
+                      <div>
+                        <dt class="hud-text">Prérequis</dt>
+                        <dd>{f.prerequisite}</dd>
+                      </div>
+                    </dl>
+                    {f.facts.length > 0 && (
+                      <ul class="facts">
+                        {f.facts.map((fact) => (
+                          <li>{fact}</li>
+                        ))}
+                      </ul>
+                    )}
+                    <Button href={`${SITE.contactPath}?formation=${f.id}`} variant={dark ? 'outline-light' : 'outline'} size="sm" class="cta">
+                      Demander le programme
+                    </Button>
+                  </div>
                 </li>
-              ))}
-            </ul>
-            {level === 'open' && (
-              <PopTip pose="permis-bapd" title="Le BAPD, c’est quoi ?" dark={dark} flip class="level-pop">
-                Le brevet d’aptitude de pilote à distance : la base pour voler en professionnel en catégorie Open, et la porte d’entrée vers le CATS.
-              </PopTip>
-            )}
-            {level === 'specifique' && (
-              <PopTip pose="permis-cats" title="Et le CATS ?" dark={dark} flip class="level-pop">
-                Le certificat de catégorie Spécifique : pour les scénarios STS, avec un drone de classe C5 ou C6, au-dessus de zones plus exigeantes.
-              </PopTip>
-            )}
-          </li>
-        ))
-      }
-    </ol>
+              );
+            })}
+          </ul>
+        </div>
+      ))
+    }
   </div>
 </section>
 
 <style>
-  .path {
-    position: relative;
-    display: grid;
-    gap: 48px;
-    padding-left: 40px;
+  .formations {
+    --green: var(--color-formations);
+    --line: var(--color-line);
+    --soft: var(--color-ink-soft);
+    --surface: #fff;
   }
-  /* The progression line, Open → Spécifique → spécialisations. */
-  .path::before {
-    content: '';
-    position: absolute;
-    top: 8px;
-    bottom: 8px;
-    left: 7px;
-    width: 2px;
-    background: linear-gradient(var(--color-formations), var(--color-gold));
-    opacity: 0.6;
+  .is-dark {
+    --green: #6fbf63;
+    --line: rgb(255 255 255 / 0.14);
+    --soft: rgb(255 255 255 / 0.72);
+    --surface: rgb(255 255 255 / 0.04);
   }
-  .level-label {
-    position: relative;
+  .group {
+    margin-top: clamp(40px, 6vw, 72px);
+  }
+  .group + .group {
+    margin-top: clamp(40px, 5vw, 56px);
+  }
+  .group-head {
     display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 16px;
-    color: var(--color-gold-deep);
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 18px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line);
   }
-  .formations.bg-ink .level-label {
-    color: var(--color-gold);
+  .group-head span {
+    text-transform: uppercase;
+    color: var(--green);
   }
-  .level-dot {
-    position: absolute;
-    left: -40px;
-    width: 16px;
-    height: 16px;
-    background: var(--color-paper);
-    border: 2px solid var(--color-formations);
+  .group-head b {
+    font-size: 1.35rem;
+    font-weight: 700;
+    font-stretch: 112%;
   }
-  .formations.bg-ink .level-dot {
-    background: var(--color-ink);
-  }
+
   .cards {
     display: grid;
-    gap: 16px;
-  }
-  .level :global(.level-pop) {
-    max-width: 560px;
-    margin: 14px 0 0 auto;
+    gap: 20px;
   }
   @media (min-width: 768px) {
-    .cards-many {
+    .cards-certs {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .cards-specs {
       grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     }
   }
+  /* Step 1 → step 2: an arrow between the two certifications. */
+  @media (min-width: 768px) {
+    .cards-certs .card:first-child::after {
+      content: '→';
+      position: absolute;
+      top: calc(min(28vw, 300px) * 0.5);
+      right: -24px;
+      z-index: 2;
+      display: grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      font-weight: 700;
+      color: #fff;
+      background: var(--green);
+    }
+  }
+
   .card {
+    position: relative;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    height: 100%;
-    padding: 28px;
-    border: 1px solid var(--color-line);
-    background: var(--color-paper);
+    border: 1px solid var(--line);
+    background: var(--surface);
     transition:
       border-color 250ms ease,
       transform 400ms var(--ease-out-strong);
   }
-  .card-dark {
-    border-color: rgb(255 255 255 / 0.14);
-    background: rgb(255 255 255 / 0.03);
-  }
   @media (hover: hover) and (pointer: fine) {
     .card:hover {
-      border-color: var(--color-formations);
+      border-color: var(--green);
       transform: translateY(-3px);
     }
+    .card:hover .media img {
+      transform: scale(1.04);
+    }
   }
-  .duration {
-    font-size: clamp(1.8rem, 3vw, 2.4rem);
-    font-weight: 800;
-    font-stretch: 125%;
-    letter-spacing: -0.02em;
-    line-height: 1;
-    color: var(--color-formations);
+  .media {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background: #111;
   }
-  .card-dark .duration {
-    color: #6fbf63;
+  .media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 900ms var(--ease-out-strong);
+  }
+  .cards-specs .media {
+    aspect-ratio: 2 / 1;
+  }
+  .step,
+  .cpf {
+    position: absolute;
+    top: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 10px 5px 5px;
+    text-transform: uppercase;
+    color: #fff;
+    background: rgb(0 0 0 / 0.7);
+  }
+  .step {
+    left: 12px;
+  }
+  .step b {
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    font-weight: 700;
+    background: var(--color-formations);
+  }
+  .cpf {
+    right: 12px;
+    padding-left: 10px;
+    color: var(--color-ink);
+    background: var(--color-gold);
+  }
+  .body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    padding: 22px 24px 24px;
   }
   .title {
-    margin-top: 6px;
-    font-size: 1.3rem;
+    font-size: 1.4rem;
     font-weight: 700;
     font-stretch: 112%;
+    line-height: 1.2;
   }
   .scope {
+    margin-top: 4px;
     font-weight: 500;
     color: var(--color-gold-deep);
   }
-  .card-dark .scope {
+  .is-dark .scope {
     color: var(--color-gold);
   }
   .summary {
-    max-width: 52ch;
+    margin-top: 12px;
+    max-width: 56ch;
     line-height: 1.55;
-    color: var(--color-ink-soft);
+    color: var(--soft);
   }
-  .card-dark .summary {
-    color: rgb(255 255 255 / 0.72);
+  .specs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2px;
+    margin-top: 18px;
+  }
+  .specs div {
+    padding: 10px 14px;
+    background: color-mix(in srgb, var(--green) 9%, transparent);
+  }
+  .specs dt {
+    text-transform: uppercase;
+    color: var(--soft);
+  }
+  .specs dd {
+    margin-top: 2px;
+    font-weight: 700;
+    font-size: 1.05rem;
   }
   .facts {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px 16px;
-    margin: 6px 0 14px;
-    font-size: 14px;
-    font-stretch: 75%;
-    letter-spacing: 0.05em;
-    color: var(--color-muted);
-  }
-  .card-dark .facts {
-    color: rgb(255 255 255 / 0.6);
+    gap: 6px 18px;
+    margin-top: 14px;
+    font-size: 15px;
+    font-weight: 500;
   }
   .facts li::before {
-    content: '';
-    display: inline-block;
-    width: 5px;
-    height: 5px;
-    margin-right: 7px;
-    vertical-align: middle;
-    background: var(--color-gold);
+    content: '✓';
+    margin-right: 6px;
+    font-weight: 700;
+    color: var(--green);
+  }
+  .body :global(.cta) {
+    align-self: flex-start;
+    margin-top: auto;
+  }
+  /* Space above the button, which sits at the bottom so buttons line up. */
+  .body > :nth-last-child(2) {
+    margin-bottom: 22px;
   }
   @media (prefers-reduced-motion: reduce) {
-    .card {
+    .card,
+    .media img {
       transition: border-color 250ms ease;
     }
-    .card:hover {
+    .card:hover,
+    .card:hover .media img {
       transform: none;
     }
   }

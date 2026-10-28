@@ -4,6 +4,7 @@ import SEOHead from '../components/seo/SEOHead.astro';
 import Header from '../components/layout/Header.astro';
 import Footer from '../components/layout/Footer.astro';
 import PopChat, { type PopContext } from '../components/layout/PopChat.astro';
+import CartDrawer from '../components/shop/CartDrawer.astro';
 import type { ActivityId } from '../data/site';
 
 interface Props {
@@ -61,6 +62,7 @@ const pop: PopContext = Astro.props.pop ?? {
     </main>
     <Footer />
     <PopChat context={pop} />
+    <CartDrawer />
     <script>
       import '../lib/reveal';
     </script>

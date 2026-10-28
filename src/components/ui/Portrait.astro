@@ -50,14 +50,23 @@ const sources = [
      out of rounded, transformed boxes): no 3D tilt, no transform on the picture — it is
      enlarged by its box (--fit) and the disc is cut by a mask. The gold ring is drawn
      over the picture. */
+  /* The disc and its ring are sized from the width only (width + aspect-ratio, no
+     percentage height): Safari resolves `height: 100%` inside an aspect-ratio box in a
+     flex column differently, which turned the disc into an oval. */
   .portrait {
     position: relative;
     aspect-ratio: 1;
-    padding: 10%;
+  }
+  .disc,
+  .rings {
+    position: absolute;
+    top: 10%;
+    left: 10%;
+    width: 80%;
+    height: auto;
+    aspect-ratio: 1;
   }
   .disc {
-    position: relative;
-    height: 100%;
     overflow: hidden;
     border-radius: 50%;
     background: radial-gradient(circle at 50% 32%, #3a3a3a, #0d0d0d 68%);
@@ -65,8 +74,6 @@ const sources = [
     mask-image: radial-gradient(circle closest-side, #000 99.4%, transparent 100%);
   }
   .rings {
-    position: absolute;
-    inset: 10%;
     z-index: 2;
     border-radius: 50%;
     pointer-events: none;

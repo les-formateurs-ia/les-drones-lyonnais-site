@@ -6,8 +6,8 @@
 // - Artistique: the scene opens like a lens aperture from the switch onto a cinematic
 //   frame — moving aerial shot, letterbox bars, film grain, thirds grid, REC timecode.
 // The switch is a drone remote's flight-mode lever (Technique · Relevé / Artistique ·
-// Ciné), centred on its own row. Copy, guide (Dylan / Théo) and a carousel of the family's
-// service cards (flagship services first) follow the
+// Ciné), centred on its own row. Copy, guide (Dylan / Théo) and a board of all the family's
+// services at a glance (flagship services first) follow the
 // state; the page also puts that family's catalogue first (html[data-famille]).
 // Without JavaScript the Technique state shows and both catalogues are below.
 import { Image } from 'astro:assets';
@@ -24,7 +24,7 @@ interface State {
   label: string;
   mode: string;
   guide: { photo: ImageMetadata; name: string; role: string };
-  /** Shown first in the carousel; the rest of the family follows. */
+  /** Shown first on the board; the rest of the family follows. */
   featured: string[];
 }
 
@@ -56,7 +56,7 @@ const states = await Promise.all(
       ...st,
       info: FAMILIES[st.id],
       cards: await Promise.all(
-        [...services].sort((a, b) => rank(st, a.label) - rank(st, b.label)).map(async (s) => ({ ...s, photo: await servicePhoto(s.image, 16 / 10) })),
+        [...services].sort((a, b) => rank(st, a.label) - rank(st, b.label)).map(async (s) => ({ ...s, photo: await servicePhoto(s.image, 3 / 2) })),
       ),
     };
   }),
@@ -171,30 +171,32 @@ const contours = [...hill(1180, 300, 1.3, 13, 38), ...hill(380, 760, 4.1, 10, 42
     </div>
 
     {
-      /* Carousel: the list, then a copy of it hidden from assistive tech, so the strip
-         loops without a gap. Pauses under the pointer and while a card has focus. */
+      /* The family's nine services at a glance: a 3 × 3 board (2 columns on phones),
+         names first, a small photo for recognition. */
       states.map((st) => (
-        <div class="carousel" data-for-famille={st.id}>
-          <div class="track-cards">
-            {[0, 1].map((copy) => (
-              <ul class="cards" aria-label={copy ? undefined : `Prestations ${st.label.toLowerCase()}s`} aria-hidden={copy ? 'true' : undefined}>
-                {st.cards.map((c, i) => (
-                  <li style={{ '--i': Math.min(i, 5) }}>
-                    <a class="card" href={c.href} tabindex={copy ? -1 : undefined}>
-                <img src={c.photo.src} srcset={c.photo.srcset} sizes="(min-width: 1024px) 22vw, (min-width: 640px) 45vw, 80vw" alt="" width={c.photo.width} height={c.photo.height} loading="lazy" decoding="async" />
-                <span class="card-tag hud-text">{SENSOR_LABEL[c.sensor]}</span>
-                <span class="card-title">{c.label}</span>
-                <span class="card-arrow" aria-hidden="true">
-                  <svg viewBox="0 0 20 20">
-                    <path d="M4 10h11M11 5l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square" />
-                  </svg>
-                </span>
-                    </a>
-                  </li>
-                ))}
-              </ul>
+        <div class="board" data-for-famille={st.id}>
+          <p class="board-head hud-text">
+            <span>
+              {st.cards.length} prestations {st.label.toLowerCase()}s
+            </span>
+            <a href={`#${st.id}`}>Tout le détail ↓</a>
+          </p>
+          <ul class="tiles" aria-label={`Prestations ${st.label.toLowerCase()}s`}>
+            {st.cards.map((c, i) => (
+              <li style={{ '--i': i }}>
+                <a class="tile" href={c.href}>
+                  <span class="tile-img">
+                    <img src={c.photo.src} srcset={c.photo.srcset} sizes="120px" alt="" width={c.photo.width} height={c.photo.height} loading="lazy" decoding="async" />
+                  </span>
+                  <span class="tile-body">
+                    <span class="tile-name">{c.label}</span>
+                    <span class="tile-tag hud-text">{SENSOR_LABEL[c.sensor]}</span>
+                  </span>
+                  <span class="tile-arrow" aria-hidden="true">→</span>
+                </a>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       ))
     }
@@ -518,8 +520,19 @@ const contours = [...hill(1180, 300, 1.3, 13, 38), ...hill(380, 760, 4.1, 10, 42
   .main {
     margin-top: clamp(10px, 3vh, 44px);
   }
+  /* Both texts share one grid cell, the hidden one kept in layout (invisible), so the
+     block always has the height of the longer text and the lever below never moves. */
   .copy {
+    display: grid;
     max-width: 36rem;
+  }
+  .copy-state {
+    grid-area: 1 / 1;
+  }
+  .p-hero[data-famille='technique'] .copy-state[data-for-famille='artistique'],
+  .p-hero[data-famille='artistique'] .copy-state[data-for-famille='technique'] {
+    display: block !important;
+    visibility: hidden;
   }
   .tagline {
     font-weight: 600;
@@ -701,112 +714,114 @@ const contours = [...hill(1180, 300, 1.3, 13, 38), ...hill(380, 760, 4.1, 10, 42
     transform: translateX(44px);
   }
 
-  /* ---------- Carousel of service cards ---------- */
-  .carousel {
+  /* ---------- Board: all the family's services at once ---------- */
+  .board {
     margin-top: auto;
     padding-top: clamp(12px, 3vh, 40px);
-    margin-inline: calc(clamp(16px, 4.5vw, 56px) * -1);
-    overflow: hidden;
-    mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
   }
-  .track-cards {
+  .board-head {
     display: flex;
-    width: max-content;
+    gap: 10px 24px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 0.7);
   }
-  .cards {
-    display: flex;
-    gap: 12px;
-    padding-right: 12px;
+  .board-head a {
+    color: var(--color-gold);
   }
-  .cards li {
-    /* 16:10 cards, sized on the screen's height too so the hero fits in one screen. */
-    width: clamp(190px, min(21vw, 30vh), 300px);
-    flex-shrink: 0;
+  .board-head a:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
-  .card {
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 2px;
+    /* Solid behind the gaps too: the guide stands behind the board. */
+    background: #1b1f2a;
+  }
+  @media (max-width: 1023px) {
+    .tiles {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    /* Nine in two columns: the last one takes the full row. */
+    .tiles li:last-child:nth-child(odd) {
+      grid-column: 1 / -1;
+    }
+  }
+  .tile {
+    --h: clamp(40px, 5.6vh, 60px);
     position: relative;
-    isolation: isolate;
     display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    gap: 8px;
-    aspect-ratio: 16 / 10;
-    padding: 14px 16px;
-    overflow: hidden;
+    align-items: center;
+    gap: 14px;
+    height: 100%;
+    min-height: calc(var(--h) + 10px);
+    padding: 5px 16px 5px 5px;
     color: #fff;
-    background: #111;
-    border: 1px solid rgb(255 255 255 / 0.12);
+    background: #0a0c12;
+    border-left: 3px solid transparent;
+    transition:
+      background-color 250ms ease,
+      border-color 250ms ease;
   }
-  .card img {
-    position: absolute;
-    inset: 0;
-    z-index: -2;
+  .p-hero[data-famille='technique'] .tile {
+    --mark: var(--tech);
+  }
+  .p-hero[data-famille='artistique'] .tile {
+    --mark: var(--color-gold);
+  }
+  .tile-img {
+    flex-shrink: 0;
+    width: calc(var(--h) * 1.45);
+    height: var(--h);
+    overflow: hidden;
+    background: #111;
+  }
+  .tile-img img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 900ms var(--ease-out-strong);
+    transition: transform 700ms var(--ease-out-strong);
   }
-  .card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    background: linear-gradient(rgb(0 0 0 / 0) 30%, rgb(0 0 0 / 0.85));
+  .tile-body {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
   }
-  .card::after {
-    content: '';
-    position: absolute;
-    inset: 0 0 auto;
-    height: 3px;
-    background: var(--color-gold);
-    transform: scaleX(0);
-    transform-origin: left;
-    transition: transform 500ms var(--ease-out-strong);
-  }
-  .card-tag {
-    position: absolute;
-    top: 12px;
-    left: 12px;
-    padding: 4px 8px;
-    background: rgb(0 0 0 / 0.55);
-  }
-  .card-title {
-    padding-right: 40px;
-    font-size: 17px;
+  .tile-name {
+    font-size: clamp(15px, 2vh, 18px);
     font-weight: 700;
     font-stretch: 110%;
-    line-height: 1.2;
+    line-height: 1.15;
   }
-  .card-arrow {
-    position: absolute;
-    right: 14px;
-    bottom: 14px;
-    display: grid;
-    place-items: center;
-    width: 30px;
-    height: 30px;
-    color: var(--color-ink);
-    background: var(--color-gold);
-    transition: transform 400ms var(--ease-out-strong);
+  .tile-tag {
+    color: rgb(255 255 255 / 0.55);
   }
-  .card-arrow svg {
-    width: 14px;
-    height: 14px;
+  .tile-arrow {
+    margin-left: auto;
+    padding-left: 8px;
+    font-weight: 700;
+    color: var(--mark);
+    transition: transform 300ms var(--ease-out-strong);
   }
   @media (hover: hover) and (pointer: fine) {
-    .card:hover img {
-      transform: scale(1.06);
+    .tile:hover {
+      background: #161a24;
+      border-left-color: var(--mark);
     }
-    .card:hover::after {
-      transform: scaleX(1);
+    .tile:hover img {
+      transform: scale(1.08);
     }
-    .card:hover .card-arrow {
-      transform: translateX(3px);
+    .tile:hover .tile-arrow {
+      transform: translateX(4px);
     }
   }
-  .card:focus-visible {
+  .tile:focus-visible {
     outline: 3px solid var(--color-gold);
-    outline-offset: 3px;
+    outline-offset: 2px;
   }
 
   .promises {
@@ -855,7 +870,7 @@ const contours = [...hill(1180, 300, 1.3, 13, 38), ...hill(380, 760, 4.1, 10, 42
     }
     /* A new state settles in. */
     .copy-state > *,
-    .cards li,
+    .tiles li,
     .guide {
       animation: rise 800ms var(--ease-out-strong) backwards;
     }
@@ -865,27 +880,15 @@ const contours = [...hill(1180, 300, 1.3, 13, 38), ...hill(380, 760, 4.1, 10, 42
     .copy-state > :nth-child(3) {
       animation-delay: 120ms;
     }
-    .track-cards {
-      animation: marquee 55s linear infinite;
-    }
-    .carousel:hover .track-cards,
-    .carousel:focus-within .track-cards {
-      animation-play-state: paused;
-    }
     .switch::after {
       animation: halo 2.6s ease-out infinite;
     }
-    .cards li {
-      animation-delay: calc(200ms + var(--i) * 70ms);
+    .tiles li {
+      animation-delay: calc(200ms + var(--i) * 45ms);
     }
     .guide {
       animation-name: guide-in;
       animation-duration: 1000ms;
-    }
-  }
-  @keyframes marquee {
-    to {
-      transform: translateX(-50%);
     }
   }
   @keyframes halo {
@@ -951,17 +954,6 @@ const contours = [...hill(1180, 300, 1.3, 13, 38), ...hill(380, 760, 4.1, 10, 42
     .lever {
       transition: none;
     }
-    /* No auto-scroll: the strip scrolls by hand, the copy is not needed. */
-    .carousel {
-      overflow-x: auto;
-      scroll-snap-type: x mandatory;
-    }
-    .cards[aria-hidden] {
-      display: none;
-    }
-    .cards li {
-      scroll-snap-align: start;
-    }
     .rec-dot,
     .p-hero[data-famille='artistique'] .grain,
     .p-hero[data-famille='artistique'] .art-photo {
@@ -1009,31 +1001,46 @@ const contours = [...hill(1180, 300, 1.3, 13, 38), ...hill(380, 760, 4.1, 10, 42
     .pos-name {
       font-size: 1.05rem;
     }
-    .cards li {
-      width: 210px;
+    .tiles {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-    .card {
-      padding: 10px;
+    .tile {
+      --h: 30px;
+      gap: 10px;
+      padding: 4px 8px 4px 4px;
     }
-    .card-title {
-      font-size: 14px;
-      padding-right: 0;
+    /* Phones: the description and the promises are repeated further down. */
+    .text,
+    .promises {
+      display: none;
     }
-    .card-arrow,
-    .card-tag {
+    .tile-name {
+      font-size: 13.5px;
+    }
+    .tile-tag,
+    .tile-arrow {
       display: none;
     }
     .rec {
       top: calc(9vh + 72px);
     }
   }
+  /* Short laptop screens: the lever's hint makes way for the board. */
+  @media (max-height: 760px) {
+    .switch-hint {
+      display: none;
+    }
+  }
   /* Small phones: the family's description (repeated in the catalogue below), the
      breadcrumb and the lever's hint make way so the whole first screen fits. */
   @media (max-width: 640px) and (max-height: 740px) {
-    .text,
     .crumbs,
-    .switch-hint {
+    .switch-hint,
+    .tile-img {
       display: none;
+    }
+    .tile {
+      padding: 8px 10px;
     }
     .page-title {
       margin-top: 0;

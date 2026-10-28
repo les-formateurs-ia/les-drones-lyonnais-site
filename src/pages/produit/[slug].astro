@@ -5,17 +5,18 @@
 // - sale: order request (Stripe checkout comes next);
 // - rental: pick the dates, see the estimate, send the booking request (validated by the
 //   team, as agreed: pilot level and availability are checked before payment).
-import { Image } from 'astro:assets';
+import { Image, getImage } from 'astro:assets';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import JsonLd from '../../components/seo/JsonLd.astro';
 import Button from '../../components/ui/Button.astro';
 import Square from '../../components/ui/Square.astro';
 import ProductCard from '../../components/shop/ProductCard.astro';
+import popDrone from '../../assets/pop/drone.webp';
+import popConseil from '../../assets/pop/conseil.webp';
 import ProductStory from '../../components/shop/ProductStory.astro';
 import RentalRates from '../../components/shop/RentalRates.astro';
 import { productPhoto } from '../../lib/product-photo';
-import PopTip from '../../components/ui/PopTip.astro';
-import { classAdvice, classPose } from '../../data/regulation';
+import { classAdvice } from '../../data/regulation';
 import { PRODUCTS, RENTAL_FILTERS, RENTAL_TIERS, SHOP_FILTERS, crossSellOf, droneClass, formatPrice, otherModeOf, productImages, productPage, productUrl, type Product } from '../../data/catalog';
 import { ACTIVITIES, SITE } from '../../data/site';
 import { OCTOBRE_ROSE, isCampaignOn } from '../../data/campaign';
@@ -77,20 +78,41 @@ const rose = !rent && product.categories.includes('drones') && isCampaignOn(OCTO
 // Buy / rent switch, when the product exists in both.
 const modes = other ? [{ kind: 'vente', label: 'Acheter', href: rent ? productUrl(other) : undefined, price: `${formatPrice((rent ? other : product).priceTTC)}` }, { kind: 'location', label: 'Louer', href: rent ? undefined : productUrl(other), price: `dès ${formatPrice((rent ? product : other).priceTTC)} / jour` }] : null;
 
+// Cart (sale only): what the cart drawer shows for this product and the matching
+// accessories it suggests (CartDrawer, lib/cart.ts).
+const thumb = async (p: Product) => {
+  const img = productImages(p)[0];
+  return img ? (await getImage({ src: img, width: 160, height: 160, fit: 'contain', background: '#ffffff', format: 'webp' })).src : undefined;
+};
+const cartItem = async (p: Product) => ({ slug: p.slug, name: p.name, price: p.priceTTC, url: productUrl(p), image: await thumb(p) });
+const cart = rent ? null : JSON.stringify(await cartItem(product));
+const cartSuggest = rent ? null : JSON.stringify(await Promise.all(crossSell.filter(({ p }) => p.kind === 'vente').map(({ p }) => cartItem(p))));
+
 // Pop's advice for this product.
 const isDrone = product.categories.includes('drones');
 const permis = page.permis;
 const advice = permis?.requirement ? `${permis.requirement}${permis.requirementDetail ? ` : ${permis.requirementDetail}` : ''}.` : cls ? classAdvice(cls) : undefined;
-const [popFirst, popSecond] = page.pop ?? [];
-const tip = popFirst
-  ? { pose: (rent ? (isDrone ? 'pilote' : 'livraison') : isDrone ? 'pouce' : 'loupe') as 'pilote' | 'livraison' | 'pouce' | 'loupe', title: 'Pop vous conseille', text: popFirst, action: { label: 'Poser une question', chat: 'Ce produit est-il disponible ?' } }
-  : cls && !permis
-  ? { pose: classPose(cls), title: 'Le point réglementation', text: advice!, action: { label: 'Voir les formations', href: '/formations-drone-a-lyon/' } }
+// Pop's advice, shown once as its own section (PopAdvice): the team's own words for this
+// product when they exist, otherwise the most useful general advice.
+const fallback = cls && !permis
+  ? { title: 'Le point réglementation', text: advice! }
   : rent && isDrone
-    ? { pose: 'pilote' as const, title: 'Louer un drone', text: 'Avant de confirmer, nous vérifions votre niveau de pilotage (A1/A3, A2, BAPD ou CATS selon le drone et la mission). Pas encore certifié ? Nos formations sont faites pour ça.', action: { label: 'Voir les formations', href: '/formations-drone-a-lyon/' } }
+    ? { title: 'Avant de louer', text: 'Avant de confirmer, nous vérifions votre niveau de pilotage (A1/A3, A2, BAPD ou CATS selon le drone et la mission). Pas encore certifié ? Nos formations sont faites pour ça.' }
     : rent
-      ? { pose: 'livraison' as const, title: 'Retrait ou livraison', text: 'Retrait à Lyon ou livraison, avec une prise en main du matériel. Une question sur ce qui est inclus ?', action: { label: 'Demander à Pop', chat: 'Comment se passe une location ?' } }
-      : { pose: 'pouce' as const, title: 'Compatible avec votre drone ?', text: 'Dites-moi quel drone vous avez : je vous confirme la compatibilité, ou l’équipe le fait pour vous.', action: { label: 'Demander à Pop', chat: 'Ce produit est-il disponible ?' } };
+      ? { title: 'Retrait ou livraison', text: 'Retrait à Lyon ou livraison, avec une prise en main du matériel. Une question sur ce qui est inclus ? Demandez-moi.' }
+      : { title: 'Compatible avec votre drone ?', text: 'Dites-moi quel drone vous avez : je vous confirme la compatibilité, ou l’équipe le fait pour vous.' };
+// Same quick questions as Pop's chat on this page (PopChat), so each one has an answer.
+const chips = rent
+  ? ['Comment se passe une location ?', 'Faut-il une formation ?', 'Ce produit est-il disponible ?']
+  : cls
+    ? ['Faut-il une formation ?', 'Ce produit est-il disponible ?', 'Louer plutôt qu’acheter ?']
+    : ['Ce produit est-il disponible ?', 'Quel drone choisir ?', 'Parler à l’équipe'];
+const popAdvice = {
+  title: page.pop?.length ? 'Pop vous conseille' : fallback.title,
+  messages: page.pop?.length ? page.pop : [fallback.text],
+  chips,
+  pose: isDrone && !rent ? popDrone : popConseil,
+};
 ---
 
 <BaseLayout title={title} description={description} pop={{ page: 'produit', product: { name: product.name, kind: product.kind, cls, advice } }}>
@@ -113,7 +135,7 @@ const tip = popFirst
 
     <div class="mt-6 grid gap-10 lg:grid-cols-12 lg:gap-14">
       <!-- Gallery -->
-      <div class="gallery lg:col-span-7" data-gallery>
+      <div class="gallery lg:col-span-7 lg:sticky lg:top-24 lg:self-start" data-gallery>
         <div class="stage viewfinder">
           {
             images.map((img, i) => (
@@ -237,13 +259,30 @@ const tip = popFirst
               </form>
             ) : (
               <div class="actions">
-                <Button href={`${SITE.contactPath}?commande=${product.slug}`} data-main-cta>
-                  Commander ce produit
+                <div class="qty-pick">
+                  <label for="qty" class="sr-only">
+                    Quantité
+                  </label>
+                  <button type="button" data-step="-1" aria-label="Un de moins">
+                    −
+                  </button>
+                  <input id="qty" type="number" inputmode="numeric" min="1" max="20" value="1" data-qty />
+                  <button type="button" data-step="1" aria-label="Un de plus">
+                    +
+                  </button>
+                </div>
+                <button type="button" class="add" data-main-cta data-cart-add data-cart-item={cart} data-cart-suggest={cartSuggest} data-cart-qty="[data-qty]" data-cart-source="[data-shot][data-active]">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M9 6V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V6" />
+                    <rect x="3" y="6" width="18" height="14" rx="2" />
+                    <path d="M3 12h18M8 10.5v3M16 10.5v3" />
+                  </svg>
+                  Ajouter au panier
+                </button>
+                <Button href={SITE.phoneHref} variant="outline" class="advice-call">
+                  Un conseil ? {SITE.phone}
                 </Button>
-                <Button href={SITE.phoneHref} variant="outline">
-                  Conseil : {SITE.phone}
-                </Button>
-                <p class="note">Paiement en ligne bientôt disponible. En attendant, nous vous recontactons pour finaliser la commande.</p>
+                <p class="note">Paiement en ligne bientôt disponible : vous validez votre panier, nous vous recontactons pour finaliser la commande.</p>
               </div>
             )
           }
@@ -288,10 +327,6 @@ const tip = popFirst
             )
           }
 
-          <PopTip pose={tip.pose} title={tip.title} action={tip.action} class="mt-8">
-            {tip.text}
-          </PopTip>
-
           <ul class="assurances">
             {[
               rent ? ['Vérifié', 'avant chaque location'] : ['Conseil', 'de télépilotes pros'],
@@ -311,7 +346,7 @@ const tip = popFirst
 
   {rent && <RentalRates base={product.priceTTC} />}
 
-  <ProductStory product={product} page={page} popQuote={popSecond} image={images[0]} />
+  <ProductStory product={product} page={page} image={images[0]} advice={popAdvice} />
 
   {
     details.length > 0 && (
@@ -370,9 +405,17 @@ const tip = popFirst
       <strong>{formatPrice(product.priceTTC)} TTC{rent && <span class="unit"> / jour</span>}</strong>
       <span class="hud-text">{rent ? 'Location' : 'Achat'}</span>
     </div>
-    <a href={rent ? '#reservation' : `${SITE.contactPath}?commande=${product.slug}`} class:list={['bar-cta', rent && 'is-rent']} tabindex="-1">
-      {rent ? 'Réserver' : 'Commander'}
-    </a>
+    {
+      rent ? (
+        <a href="#reservation" class="bar-cta is-rent" tabindex="-1">
+          Réserver
+        </a>
+      ) : (
+        <button type="button" class="bar-cta" tabindex="-1" data-cart-add data-cart-item={cart} data-cart-suggest={cartSuggest} data-cart-source="[data-shot][data-active]">
+          Ajouter au panier
+        </button>
+      )
+    }
   </div>
 </BaseLayout>
 
@@ -582,6 +625,71 @@ const tip = popFirst
     flex-wrap: wrap;
     gap: 10px;
     margin-top: 24px;
+  }
+  .qty-pick {
+    display: inline-flex;
+    align-items: center;
+    height: 48px;
+    border: 1px solid rgb(0 0 0 / 0.25);
+  }
+  .qty-pick button {
+    width: 40px;
+    height: 100%;
+    font-size: 20px;
+    cursor: pointer;
+    transition: background-color 150ms ease;
+  }
+  .qty-pick button:hover {
+    background: var(--color-mist);
+  }
+  .qty-pick input {
+    width: 36px;
+    height: 100%;
+    font-weight: 700;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    -moz-appearance: textfield;
+  }
+  .qty-pick input::-webkit-inner-spin-button,
+  .qty-pick input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+  }
+  .add {
+    display: inline-flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 48px;
+    padding: 0 24px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    background: var(--color-ink);
+    cursor: pointer;
+    transition:
+      background-color 150ms ease,
+      transform 150ms ease-out;
+  }
+  .add svg {
+    width: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linejoin: round;
+  }
+  .add:hover {
+    background: var(--color-ink-soft);
+  }
+  .add:active {
+    transform: scale(0.97);
+  }
+  .add[aria-busy='true'] {
+    pointer-events: none;
+    opacity: 0.7;
+  }
+  .actions :global(.advice-call) {
+    width: 100%;
   }
   .note {
     margin-top: 10px;
@@ -987,6 +1095,19 @@ const tip = popFirst
   // Octobre Rose ends by itself after its last day.
   document.querySelectorAll<HTMLElement>('[data-rose-until]').forEach((el) => {
     if (Date.now() > new Date(`${el.dataset.roseUntil}T23:59:59`).getTime()) el.remove();
+  });
+
+  // Quantity: − / + around the field, kept between 1 and 20.
+  document.querySelectorAll<HTMLElement>('.qty-pick').forEach((box) => {
+    const input = box.querySelector<HTMLInputElement>('input')!;
+    const clamp = () => (input.value = String(Math.max(1, Math.min(20, Math.round(Number(input.value) || 1)))));
+    box.querySelectorAll<HTMLButtonElement>('[data-step]').forEach((b) =>
+      b.addEventListener('click', () => {
+        input.value = String(Number(input.value) + Number(b.dataset.step));
+        clamp();
+      }),
+    );
+    input.addEventListener('change', clamp);
   });
 
   // Small screens: the bar shows once the main button has scrolled out of view.

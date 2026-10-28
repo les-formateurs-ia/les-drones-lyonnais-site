@@ -4,8 +4,9 @@
 // page shows the one of the current mode (html[data-mode], see lib/mode.ts).
 import Square from '../ui/Square.astro';
 import { MODE_LIST, FOCUS } from '../../data/modes';
-import { formatPrice, productUrl } from '../../data/catalog';
-import { LEVEL_LABEL } from '../../data/formations';
+import { formatPrice, productUrl, forSale, forRent } from '../../data/catalog';
+import { LEVEL_LABEL, FORMATIONS } from '../../data/formations';
+import { SERVICES } from '../../data/services';
 import { servicePhoto, type ServicePhoto } from '../../lib/service-photo';
 import { productPhoto } from '../../lib/product-photo';
 import type { ActivityId } from '../../data/site';
@@ -21,6 +22,14 @@ interface Card {
 }
 
 const RATIO = 4 / 3;
+
+// The section's goal is the click to the full page: the button names what is waiting there.
+const total: Record<ActivityId, { n: number; what: string; verb: string }> = {
+  prestations: { n: SERVICES.length, what: 'prestations', verb: 'Découvrir les' },
+  boutique: { n: forSale.length, what: 'produits en boutique', verb: 'Voir les' },
+  location: { n: forRent.length, what: 'drones et packs à louer', verb: 'Voir les' },
+  formations: { n: FORMATIONS.length, what: 'formations', verb: 'Découvrir les' },
+};
 const cards: Record<ActivityId, Card[]> = {
   prestations: await Promise.all(
     FOCUS.prestations.map(async (s) => ({
@@ -83,7 +92,7 @@ const cards: Record<ActivityId, Card[]> = {
               <p class="intro">{m.focus.text}</p>
               <a class="more" href={m.focus.more.href}>
                 {m.focus.more.label}
-                <span aria-hidden="true">→</span>
+                <span class="arrow" aria-hidden="true">→</span>
               </a>
             </div>
           </div>
@@ -98,10 +107,29 @@ const cards: Record<ActivityId, Card[]> = {
                   <span class="card-meta hud-text">{c.meta}</span>
                   <span class="card-title">{c.title}</span>
                   <span class="card-text">{c.text}</span>
+                  <span class="card-go" aria-hidden="true">
+                    Voir <span class="arrow">→</span>
+                  </span>
                 </a>
               </li>
             ))}
           </ul>
+
+          {/* Main call to action: the full page of the mode. */}
+          <a class="go" href={m.href} style={{ '--i': 8 }}>
+            <span class="go-count" aria-hidden="true">
+              <b>{total[m.id].n}</b>
+            </span>
+            <span class="go-text">
+              <span class="go-kicker hud-text">Ce n’est qu’un aperçu</span>
+              <span class="go-title">
+                {total[m.id].verb} {total[m.id].n} {total[m.id].what}
+              </span>
+            </span>
+            <span class="go-arrow" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+            </span>
+          </a>
         </div>
       ))
     }
@@ -139,19 +167,33 @@ const cards: Record<ActivityId, Card[]> = {
   }
   .more {
     display: inline-flex;
-    gap: 8px;
-    margin-top: 16px;
-    font-weight: 600;
-    border-bottom: 1px solid var(--accent);
-    padding-bottom: 2px;
+    align-items: center;
+    gap: 10px;
+    margin-top: 20px;
+    padding: 12px 20px;
+    font-weight: 700;
+    color: #fff;
+    border: 1px solid color-mix(in srgb, var(--accent) 70%, transparent);
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
+    transition: background-color 250ms ease;
   }
-  .more span {
+  .arrow {
+    display: inline-block;
     transition: transform 250ms var(--ease-out-strong);
   }
   @media (hover: hover) and (pointer: fine) {
-    .more:hover span {
+    .more:hover {
+      background: color-mix(in srgb, var(--accent) 34%, transparent);
+    }
+    .more:hover .arrow,
+    .card:hover .arrow {
       transform: translateX(4px);
     }
+  }
+  .more:focus-visible,
+  .go:focus-visible {
+    outline: 2px solid var(--color-gold);
+    outline-offset: 3px;
   }
 
   .cards {
@@ -229,6 +271,156 @@ const cards: Record<ActivityId, Card[]> = {
       transform: scale(1.04);
     }
   }
+  .card-go {
+    margin-top: auto;
+    padding-top: 16px;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--accent);
+  }
+
+  /* ---------- Main call to action ---------- */
+  .go {
+    position: relative;
+    isolation: isolate;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: clamp(16px, 3vw, 40px);
+    margin-top: 2px;
+    padding: clamp(20px, 3vw, 32px) clamp(20px, 3vw, 40px);
+    overflow: hidden;
+    /* Text on the accent fill: white, except on the white accent of the shop. */
+    --on-accent: #fff;
+    color: #fff;
+    background: color-mix(in srgb, var(--accent) 22%, #0b0b0b);
+    border-top: 2px solid var(--accent);
+  }
+  /* Fill that sweeps across on hover, plus a slow light pass to draw the eye. */
+  .go::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 600ms var(--ease-out-strong);
+  }
+  .go::after {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    z-index: -1;
+    width: 30%;
+    background: linear-gradient(100deg, transparent, rgb(255 255 255 / 0.12), transparent);
+    transform: translateX(-120%);
+    pointer-events: none;
+  }
+  :global(html[data-mode='boutique']) .go {
+    --on-accent: #000;
+  }
+  .go-count {
+    display: grid;
+    place-items: center;
+    min-width: 2.4em;
+    font-size: clamp(2.4rem, 5vw, 4.2rem);
+    font-weight: 800;
+    font-stretch: 125%;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent);
+    transition: color 300ms ease;
+  }
+  .go-text {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+  .go-kicker {
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 0.65);
+  }
+  .go-title {
+    font-size: clamp(1.25rem, 2.4vw, 2rem);
+    font-weight: 700;
+    font-stretch: 115%;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+  }
+  .go-arrow {
+    display: grid;
+    place-items: center;
+    width: clamp(52px, 6vw, 72px);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    color: #000;
+    background: #fff;
+    transition:
+      transform 400ms var(--ease-out-strong),
+      color 300ms ease,
+      background-color 300ms ease;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .go:hover::before {
+      transform: scaleX(1);
+    }
+    .go:hover {
+      color: var(--on-accent);
+    }
+    .go:hover .go-count,
+    .go:hover .go-kicker {
+      color: inherit;
+    }
+    .go:hover .go-arrow {
+      color: var(--accent);
+      background: var(--on-accent);
+      transform: translateX(6px);
+    }
+  }
+  .go:active .go-arrow {
+    transform: translateX(6px) scale(0.94);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .go::after {
+      animation: go-shine 5s ease-in-out 1.5s infinite;
+    }
+    .go-arrow svg {
+      animation: go-nudge 2.4s ease-in-out infinite;
+    }
+  }
+  @keyframes go-shine {
+    0%,
+    60% {
+      transform: translateX(-120%);
+    }
+    100% {
+      transform: translateX(420%);
+    }
+  }
+  @keyframes go-nudge {
+    0%,
+    70%,
+    100% {
+      transform: none;
+    }
+    80% {
+      transform: translateX(4px);
+    }
+    90% {
+      transform: translateX(-1px);
+    }
+  }
+  @media (max-width: 640px) {
+    .go {
+      grid-template-columns: 1fr auto;
+    }
+    .go-count {
+      display: none;
+    }
+  }
+
   .card:focus-visible {
     outline: 2px solid var(--color-gold);
     outline-offset: 2px;

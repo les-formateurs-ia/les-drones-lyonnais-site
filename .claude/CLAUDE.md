@@ -62,7 +62,12 @@ public/            fonts, favicon, robots.txt
 - **The whole homepage follows the mode**: html[data-mode] (set before paint from
   ?mode= or sessionStorage by BaseLayout's `mode` prop, changed by lib/mode.ts) +
   `[data-for="<mode>"]` elements and the animatable `--accent` colour (global.css).
-  Mode-aware so far: hero, ModeFocus (offers under the hero), FinalCta (`byMode`).
+  Mode-aware so far: hero, ModeFocus (offers under the hero, ending on a big "see the
+  N items" link to the full page: its job is the click), FinalCta (`byMode`).
+- 2026-10-28: the services screens (Services, ServicesSplit) and the pinned team
+  (Team.astro) were removed from the homepage at the client's request; the team is
+  TeamGrid (four portraits). Portrait sizes its disc from width + aspect-ratio only
+  (a percentage height made it an oval in Safari).
 - The model is /models/drone.glb: "DJI Mavic 3" by llirikslon (Sketchfab, CC BY 4.0,
   credit shown in the hero — keep it). Source in media-src/drone/ (gitignored, the
   Matrice 300 there was rejected: CAD look, merged propellers). Rebuild with
@@ -113,7 +118,8 @@ Skills: `ldl-art-direction` (identity), `seo-production`, `visual-qa`,
   beam, targets, live readouts; guide Dylan), Artistique after the flight-mode lever of a
   drone remote is flipped (aperture opening onto a cinematic frame: FPV shot, letterbox,
   grain, thirds, REC timecode; guide Théo). The lever is centred on its own row between
-  two rails; the family's 9 service cards scroll in a looping carousel (paused on hover); the
+  two rails; the family's 9 services show at once on a board (3 × 3, name + small photo;
+  client asked on 2026-10-28 for an overview at a glance, a carousel was dropped); the
   chosen family's catalogue moves first (html[data-famille]); ?famille=artistique opens it,
   both catalogues as a mosaic of full-bleed photo cards (one large, tall and wide ones,
   text on the photo, colour photos; the artistic family mirrors the layout — client asked
@@ -130,7 +136,11 @@ Skills: `ldl-art-direction` (identity), `seo-production`, `visual-qa`,
   Artistique / Théo) that tilts with the pointer and flips on click or with the two tabs.
   The chosen path's catalogue moves first; ?parcours=artistique opens it. DeckHero.astro
   is no longer used by any page.
-  Formations in src/data/formations.ts.
+  Below it (2026-10-28, client found the catalogue unclear): FormationGuide ("Par où
+  commencer ?": the 3 steps Open/BAPD → Spécifique/CATS → spécialisation, LEVEL_GUIDE,
+  plus CPF funding), then each family as fact sheets (FormationCatalog: certifications
+  side by side, then specialisations; photo with step badge, objective, Durée and
+  Prérequis on every card). Formations in src/data/formations.ts (`prerequisite` field).
 - `/boutique/`: ShopHero = search + mega menu (5 tabs of category tiles, as on the
   current site; SHOP_MENU in data/catalog.ts, each tile is a catalogue filter).
 - `/location-drone-et-camera/`: RentalHero = search + category tiles + featured packs.
@@ -147,8 +157,36 @@ Skills: `ldl-art-direction` (identity), `seo-production`, `visual-qa`,
   vous conseille", "Pour qui ?", "Quel permis ?") is imported by
   `node scripts/import-product-pages.mjs` → src/data/product-pages.json and shown by
   components/shop/ProductStory.astro. Their "Quel permis ?" wins over the generic
-  data/regulation.ts advice. Sale CTA = order request, rental = dates + estimate +
+  data/regulation.ts advice. Pop's advice is one section of its own (PopAdvice, after
+  "Découvrez le": large Pop, chat bubbles that type in, quick questions opening PopChat),
+  not bubbles scattered in the page; Pop also peeks over the "Quel permis ?" card. New
+  high-res Pop poses (conseil, drone) come from `node --env-file=.env
+  scripts/generate-pop.mjs <pose>` (Runware, FLUX Kontext from an existing pose +
+  background removal, raw files in media-src/pop/). Sale CTA = order request, rental = dates + estimate +
   booking request, both to /contact/ until the Stripe Worker exists.
 
-Next: /contact/ (receives ?commande=, ?location=&du=&au=, ?formation=), Stripe checkout
-and booking Worker, the 18 service pages, legal pages, redirect plan.
+- The 18 service pages (2026-10-28), at their WordPress URLs (/inspection-thermique-par-drone-2/…):
+  one template, src/pages/[service].astro, content in src/data/service-pages/<slug>.ts
+  (schema in data/service-pages.ts), rewritten from the current pages (client asked for
+  better copy; no invented facts). Two moods by family: technique = the drone's sensor
+  (ServiceHero: scan line showing the photo through thermal / survey / night / detection
+  filters, flight readouts; ServiceProcess: flight plan, a drone flies waypoint to
+  waypoint with the scroll; ServiceCase: mission report) and artistique = the film set
+  (letterbox, grain, REC timecode, LIVE, LOG/REC.709 split; editing timeline with a
+  playhead; clapperboard that claps). Also a pre-flight checklist, a film strip of the
+  page's own photos (`node scripts/import-service-photos.mjs` → src/assets/services/
+  pages/<slug>/), FAQ (FAQPage JSON-LD), related services. Pop appears once, in the
+  closing CTA (new poses clap / ingenieur from generate-pop.mjs). Quote links:
+  /contact/?prestation=<slug>.
+- Cart (2026-10-28): lib/cart.ts (localStorage, `ldl:cart` event) + components/shop/
+  CartDrawer.astro in BaseLayout, header button [data-cart-open] with count. Any
+  [data-cart-add] (data-cart-item JSON, optional data-cart-suggest, data-cart-qty,
+  data-cart-source) adds: a small drone carries the product photo to the header cart,
+  then the drawer opens as a flight case (metal lid, foam slots, accessories to add).
+  Pop only in the empty case. "Valider ma commande" → /contact/?commande=slug*qty,…
+  until Stripe Checkout. Sale product pages: quantity + "Ajouter au panier"; rentals
+  keep the booking request.
+
+Next: /contact/ (receives ?commande=slug*qty,…, ?location=&du=&au=, ?formation=,
+?prestation=), Stripe checkout (from the cart) and booking Worker, legal pages,
+redirect plan.
