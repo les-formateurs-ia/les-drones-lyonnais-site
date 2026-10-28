@@ -54,12 +54,22 @@ public/            fonts, favicon, robots.txt
 
 ## Homepage motion (client request: a "wow" effect)
 
-- First screen = only the choice between the activities, full screen (client request):
-  a live "drone camera" view (feed + on-screen flight data). The four activities are
-  its flight modes: pointing at one switches the feed; modes cycle until the first
-  interaction. Feeds are photos from the current site until the client provides short
-  aerial videos (one per activity, muted loop, ≤ 3 MB each).
-  The h1 is the small caption above the modes.
+- First screen (client request, 2026-10-27): a realistic 3D drone in the middle of the
+  page (Three.js, lib/hero-drone.ts) and four **modes** — Prestations, Boutique,
+  Location, Formations. Each mode has its own set and flight (scan beam / showroom
+  pedestal / landing pad / figure of eight through gates), labels pinned to the drone,
+  copy and CTAs. Drag turns the drone. Content of the modes: src/data/modes.ts.
+- **The whole homepage follows the mode**: html[data-mode] (set before paint from
+  ?mode= or sessionStorage by BaseLayout's `mode` prop, changed by lib/mode.ts) +
+  `[data-for="<mode>"]` elements and the animatable `--accent` colour (global.css).
+  Mode-aware so far: hero, ModeFocus (offers under the hero), FinalCta (`byMode`).
+- The model is /models/drone.glb: "DJI Mavic 3" by llirikslon (Sketchfab, CC BY 4.0,
+  credit shown in the hero — keep it). Source in media-src/drone/ (gitignored, the
+  Matrice 300 there was rejected: CAD look, merged propellers). Rebuild with
+  `node scripts/prepare-drone.mjs` (names rotors prop_N for spinning, meshopt + WebP).
+  A built-in procedural drone is the fallback if the model cannot load.
+- Earlier heroes tried: "drone camera" HUD (assets feed-*.jpg), then the WordPress
+  three-panel layout (assets hero-*.jpg). Both replaced.
 - One boot-up sequence on load; on scroll the page rises over the hero while the
   picture moves down at half speed, blurs and darkens (plain JS scroll + rAF in
   Hero.astro, so it works in Safari too). A lens-opening effect was tried and dropped.
@@ -98,12 +108,28 @@ Skills: `ldl-art-direction` (identity), `seo-production`, `visual-qa`,
 ## Pages built
 
 - `/` homepage (proof of concept).
-- `/prestations/` services hub: technical / artistic choice (hero with Dylan's cut-out),
-  both catalogues (identical 16:10 cards, black and white until pointed at), five-step
-  method, quote request. Services live in src/data/services.ts (single source for the
+- `/prestations/` services hub: hero in two states (PrestationsHero.astro, 2026-10-28):
+  Technique by default (animated survey background: grid, topographic contours, scan
+  beam, targets, live readouts; guide Dylan), Artistique after the flight-mode lever of a
+  drone remote is flipped (aperture opening onto a cinematic frame: FPV shot, letterbox,
+  grain, thirds, REC timecode; guide Théo). The lever is centred on its own row between
+  two rails; the family's 9 service cards scroll in a looping carousel (paused on hover); the
+  chosen family's catalogue moves first (html[data-famille]); ?famille=artistique opens it,
+  both catalogues as a mosaic of full-bleed photo cards (one large, tall and wide ones,
+  text on the photo, colour photos; the artistic family mirrors the layout — client asked
+  on 2026-10-28 for cards that stand out and bigger images), five-step
+  method (Method.astro: pinned on large screens, a drone flies through one waypoint per
+  step and the reached card lights up, each step illustrated by a Pop pose — `pose` in
+  METHOD / FORMATION_STEPS; also used on /formations/), quote request. Services live in src/data/services.ts (single source for the
   homepage screen and this page); photos are cropped by lib/service-photo.ts.
 
-- `/formations-drone-a-lyon/`: same deck hero as /prestations/ (components/ui/DeckHero.astro).
+- `/formations-drone-a-lyon/`: FormationsHero.astro (2026-10-28): a flight-school field
+  seen from above where a drone flies a real exercise of the chosen path (Technique:
+  photogrammetry survey grid over a building, photo triggers; Artistique: orbit around a
+  point of interest), a flight log, and a 3D "path card" (front Technique / Dylan, back
+  Artistique / Théo) that tilts with the pointer and flips on click or with the two tabs.
+  The chosen path's catalogue moves first; ?parcours=artistique opens it. DeckHero.astro
+  is no longer used by any page.
   Formations in src/data/formations.ts.
 - `/boutique/`: ShopHero = search + mega menu (5 tabs of category tiles, as on the
   current site; SHOP_MENU in data/catalog.ts, each tile is a catalogue filter).

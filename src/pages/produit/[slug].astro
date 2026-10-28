@@ -12,11 +12,13 @@ import Button from '../../components/ui/Button.astro';
 import Square from '../../components/ui/Square.astro';
 import ProductCard from '../../components/shop/ProductCard.astro';
 import ProductStory from '../../components/shop/ProductStory.astro';
+import RentalRates from '../../components/shop/RentalRates.astro';
 import { productPhoto } from '../../lib/product-photo';
 import PopTip from '../../components/ui/PopTip.astro';
 import { classAdvice, classPose } from '../../data/regulation';
-import { PRODUCTS, RENTAL_FILTERS, SHOP_FILTERS, crossSellOf, droneClass, formatPrice, otherModeOf, productImages, productPage, productUrl, type Product } from '../../data/catalog';
+import { PRODUCTS, RENTAL_FILTERS, RENTAL_TIERS, SHOP_FILTERS, crossSellOf, droneClass, formatPrice, otherModeOf, productImages, productPage, productUrl, type Product } from '../../data/catalog';
 import { ACTIVITIES, SITE } from '../../data/site';
+import { OCTOBRE_ROSE, isCampaignOn } from '../../data/campaign';
 
 export function getStaticPaths() {
   return PRODUCTS.map((product) => ({ params: { slug: product.slug }, props: { product } }));
@@ -69,6 +71,11 @@ const structuredData = [
   },
 ];
 const today = new Date().toISOString().slice(0, 10);
+const pad = (n: number) => String(n).padStart(2, '0');
+// Octobre Rose: drones for sale carry the donation (hidden again by the script after the end date).
+const rose = !rent && product.categories.includes('drones') && isCampaignOn(OCTOBRE_ROSE.until);
+// Buy / rent switch, when the product exists in both.
+const modes = other ? [{ kind: 'vente', label: 'Acheter', href: rent ? productUrl(other) : undefined, price: `${formatPrice((rent ? other : product).priceTTC)}` }, { kind: 'location', label: 'Louer', href: rent ? undefined : productUrl(other), price: `dès ${formatPrice((rent ? product : other).priceTTC)} / jour` }] : null;
 
 // Pop's advice for this product.
 const isDrone = product.categories.includes('drones');
@@ -107,7 +114,7 @@ const tip = popFirst
     <div class="mt-6 grid gap-10 lg:grid-cols-12 lg:gap-14">
       <!-- Gallery -->
       <div class="gallery lg:col-span-7" data-gallery>
-        <div class="stage">
+        <div class="stage viewfinder">
           {
             images.map((img, i) => (
               <Image
@@ -122,7 +129,15 @@ const tip = popFirst
               />
             ))
           }
-          {cls && <span class="badge hud-text">Classe {cls}</span>}
+          <span class="badges">
+            {cls && <span class="badge hud-text">Classe {cls}</span>}
+            {rose && <span class="badge badge-rose hud-text" data-rose-until={OCTOBRE_ROSE.until}>♥ {OCTOBRE_ROSE.label}</span>}
+          </span>
+          {images.length > 1 && (
+            <span class="counter hud-text" aria-hidden="true">
+              <span data-counter>01</span> / {pad(images.length - 1)}
+            </span>
+          )}
         </div>
         {
           images.length > 1 && (
@@ -147,6 +162,25 @@ const tip = popFirst
             {rent ? 'Location' : 'Vente'}
             {filter && `, ${filter.label}`}
           </p>
+          {
+            modes && (
+              <nav class="mode-switch" aria-label="Acheter ou louer ce produit">
+                {modes.map((m) =>
+                  m.href ? (
+                    <a href={m.href} class="mode">
+                      <span class="mode-label">{m.label}</span>
+                      <span class="mode-price hud-text">{m.price}</span>
+                    </a>
+                  ) : (
+                    <span class={`mode is-on is-${m.kind}`} aria-current="page">
+                      <span class="mode-label">{m.label}</span>
+                      <span class="mode-price hud-text">{m.price}</span>
+                    </span>
+                  ),
+                )}
+              </nav>
+            )
+          }
           <h1 id="product-title" class="display mt-3 text-[clamp(1.8rem,3vw,2.6rem)]">{product.name}</h1>
           {product.summary && <p class="mt-4 leading-relaxed text-ink-soft">{product.summary}</p>}
 
@@ -156,12 +190,33 @@ const tip = popFirst
               {formatPrice(product.priceTTC)} TTC{rent && <span class="unit"> / jour</span>}
             </strong>
             <span class="ht">soit {formatPrice(product.priceHT)} HT</span>
+            {rent && (
+              <a href="#tarifs" class="degressive">
+                Tarif dégressif : jusqu’à −{Math.round(RENTAL_TIERS[RENTAL_TIERS.length - 1].discount * 100)} % par jour <span aria-hidden="true">↓</span>
+              </a>
+            )}
           </div>
 
           {
+            rose && (
+              <p class="rose" data-rose-until={OCTOBRE_ROSE.until}>
+                <span class="rose-amount">{OCTOBRE_ROSE.amount}</span>
+                <span>
+                  <b>{OCTOBRE_ROSE.label}</b> : {OCTOBRE_ROSE.amount} {OCTOBRE_ROSE.text}
+                </span>
+              </p>
+            )
+          }
+
+          {
             rent ? (
-              <form class="booking" action={SITE.contactPath} method="get" data-booking data-day={product.priceTTC}>
+              <form id="reservation" class="booking scroll-mt-24" action={SITE.contactPath} method="get" data-booking data-day={product.priceTTC} data-tiers={JSON.stringify(RENTAL_TIERS.map((t) => [t.from, t.to === Infinity ? 999 : t.to, t.discount]))}>
                 <input type="hidden" name="location" value={product.slug} />
+                <div class="quick" role="group" aria-label="Durées courantes">
+                  <button type="button" data-days="1">1 jour</button>
+                  <button type="button" data-days="2" data-weekend>Week-end</button>
+                  <button type="button" data-days="7">1 semaine</button>
+                </div>
                 <div class="dates">
                   <label>
                     <span>Du</span>
@@ -175,14 +230,16 @@ const tip = popFirst
                 <p class="estimate" aria-live="polite" data-estimate>
                   Choisissez vos dates pour une estimation.
                 </p>
-                <button type="submit" class="submit">
+                <button type="submit" class="submit" data-main-cta>
                   Demander la réservation
                 </button>
                 <p class="note">Nous confirmons la disponibilité et votre niveau de pilotage, puis vous envoyons le lien de paiement et la caution.</p>
               </form>
             ) : (
               <div class="actions">
-                <Button href={`${SITE.contactPath}?commande=${product.slug}`}>Commander ce produit</Button>
+                <Button href={`${SITE.contactPath}?commande=${product.slug}`} data-main-cta>
+                  Commander ce produit
+                </Button>
                 <Button href={SITE.phoneHref} variant="outline">
                   Conseil : {SITE.phone}
                 </Button>
@@ -192,15 +249,8 @@ const tip = popFirst
           }
 
           {
-            (other || page.docs) && (
+            page.docs && (
               <ul class="links">
-                {other && (
-                  <li>
-                    <a href={productUrl(other)} class="link-strong">
-                      {other.kind === 'location' ? `Louer ce produit, dès ${formatPrice(other.priceTTC)} TTC / jour` : `Acheter ce produit, ${formatPrice(other.priceTTC)} TTC`}
-                    </a>
-                  </li>
-                )}
                 {page.docs?.spec && (
                   <li>
                     <a href={page.docs.spec} target="_blank" rel="noopener">
@@ -243,26 +293,53 @@ const tip = popFirst
           </PopTip>
 
           <ul class="assurances">
-            <li>{rent ? 'Matériel vérifié avant chaque location' : 'Conseil de télépilotes professionnels'}</li>
-            <li>{rent ? 'Prise en main expliquée au retrait' : 'Livraison partout en France'}</li>
-            <li>Équipe basée à Lyon</li>
+            {[
+              rent ? ['Vérifié', 'avant chaque location'] : ['Conseil', 'de télépilotes pros'],
+              rent ? ['Prise en main', 'expliquée au retrait'] : ['Livraison', 'partout en France'],
+              ['Lyon', 'équipe sur place'],
+            ].map(([a, b]) => (
+              <li>
+                <b>{a}</b>
+                <span>{b}</span>
+              </li>
+            ))}
           </ul>
         </div>
       </div>
     </div>
   </section>
 
-  <ProductStory product={product} page={page} popQuote={popSecond} />
+  {rent && <RentalRates base={product.priceTTC} />}
+
+  <ProductStory product={product} page={page} popQuote={popSecond} image={images[0]} />
 
   {
     details.length > 0 && (
       <section class="border-t border-line bg-paper section-pad" aria-labelledby="details-title">
         <div class="wrap grid gap-10 lg:grid-cols-12">
-          <h2 id="details-title" class="display text-[clamp(1.8rem,3vw,2.6rem)] lg:col-span-4">
-            Description
-          </h2>
-          <div class="details lg:col-span-7 lg:col-start-6">
-            {details.map((b) => (b.type === 'h' ? <h3>{b.text}</h3> : <p class={b.type === 'li' ? 'li' : undefined}>{b.text}</p>))}
+          <div class="desc-side lg:col-span-4">
+            <h2 id="details-title" class="display text-[clamp(1.8rem,3vw,2.6rem)]" data-reveal>
+              Description
+            </h2>
+            {images[0] && (
+              <div class="desc-card viewfinder" data-reveal style={{ '--i': 1 }}>
+                <Image src={images[0]} alt="" width={360} densities={[1, 2]} />
+                <p class="hud-text">{product.name}</p>
+                <p class="desc-price">
+                  {formatPrice(product.priceTTC)} TTC{rent && ' / jour'}
+                </p>
+              </div>
+            )}
+          </div>
+          <div class="details lg:col-span-7 lg:col-start-6" data-details data-long={details.length > 7 || undefined}>
+            <div class="details-body">
+              {details.map((b, i) => (b.type === 'h' ? <h3 data-reveal style={{ '--i': i % 4 }}>{b.text}</h3> : <p class={b.type === 'li' ? 'li' : undefined} data-reveal style={{ '--i': i % 4 }}>{b.text}</p>))}
+            </div>
+            {details.length > 7 && (
+              <button type="button" class="more" aria-expanded="false" data-more>
+                Lire la suite
+              </button>
+            )}
           </div>
         </div>
       </section>
@@ -287,6 +364,16 @@ const tip = popFirst
       </section>
     )
   }
+  <!-- Small screens: price and main action stay at hand once the buy box is scrolled past. -->
+  <div class="bar" data-bar aria-hidden="true">
+    <div class="bar-price">
+      <strong>{formatPrice(product.priceTTC)} TTC{rent && <span class="unit"> / jour</span>}</strong>
+      <span class="hud-text">{rent ? 'Location' : 'Achat'}</span>
+    </div>
+    <a href={rent ? '#reservation' : `${SITE.contactPath}?commande=${product.slug}`} class:list={['bar-cta', rent && 'is-rent']} tabindex="-1">
+      {rent ? 'Réserver' : 'Commander'}
+    </a>
+  </div>
 </BaseLayout>
 
 <style>
@@ -328,14 +415,33 @@ const tip = popFirst
     transform: scale(1.8);
     transform-origin: var(--zx, 50%) var(--zy, 50%);
   }
-  .badge {
+  .stage {
+    --vf: rgb(0 0 0 / 0.35);
+    --vf-inset: 14px;
+  }
+  .badges {
     position: absolute;
-    top: 14px;
-    left: 14px;
+    top: 22px;
+    left: 22px;
     z-index: 4;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .badge {
     padding: 4px 10px;
     color: #fff;
     background: var(--color-ink);
+  }
+  .badge-rose {
+    background: #e83e8c;
+  }
+  .counter {
+    position: absolute;
+    right: 22px;
+    bottom: 20px;
+    z-index: 4;
+    color: var(--color-muted);
   }
   .thumbs {
     display: flex;
@@ -354,6 +460,7 @@ const tip = popFirst
   }
   .thumbs button[aria-pressed='true'] {
     border-color: var(--color-ink);
+    box-shadow: inset 0 -3px 0 var(--color-gold);
   }
   .thumbs img {
     width: 100%;
@@ -367,6 +474,87 @@ const tip = popFirst
     align-items: center;
     gap: 8px;
     color: var(--color-muted);
+  }
+  /* Buy / rent switch: two positions, the current one lit. */
+  .mode-switch {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    margin: 18px 0 22px;
+    padding: 4px;
+    background: var(--color-mist);
+    border: 1px solid var(--color-line);
+  }
+  .mode {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 14px;
+    color: var(--color-ink-soft);
+    transition: background-color 200ms ease;
+  }
+  .mode-label {
+    font-weight: 700;
+    font-stretch: 112%;
+  }
+  .mode-price {
+    color: var(--color-muted);
+  }
+  a.mode:hover {
+    background: #fff;
+  }
+  .mode.is-on {
+    color: #fff;
+    background: var(--color-ink);
+  }
+  .mode.is-location {
+    background: var(--color-location);
+  }
+  .mode.is-on .mode-price {
+    color: rgb(255 255 255 / 0.8);
+  }
+  .rose {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 16px;
+    padding: 12px 14px;
+    font-size: 14px;
+    line-height: 1.45;
+    color: #5c1638;
+    background: #fdeaf3;
+    border-left: 3px solid #e83e8c;
+  }
+  .rose-amount {
+    flex-shrink: 0;
+    font-size: 1.6rem;
+    font-weight: 800;
+    font-stretch: 120%;
+    color: #e83e8c;
+  }
+  .quick {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .quick button {
+    flex: 1;
+    min-height: 40px;
+    font-size: 14px;
+    font-weight: 600;
+    border: 1px solid var(--color-line);
+    background: #fff;
+    transition:
+      border-color 200ms ease,
+      background-color 200ms ease;
+  }
+  .quick button:hover {
+    border-color: var(--color-location);
+  }
+  .quick button[aria-pressed='true'] {
+    color: #fff;
+    background: var(--color-location);
+    border-color: var(--color-location);
   }
   .price {
     display: flex;
@@ -530,36 +718,170 @@ const tip = popFirst
   }
   .assurances {
     display: grid;
+    grid-template-columns: repeat(3, 1fr);
     gap: 8px;
     margin-top: 24px;
-    padding-top: 20px;
-    border-top: 1px solid var(--color-line);
-    font-size: 15px;
-    color: var(--color-ink-soft);
   }
-  .assurances li::before {
-    content: '';
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    margin-right: 10px;
-    vertical-align: middle;
-    background: var(--color-gold);
+  .assurances li {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 12px;
+    font-size: 13px;
+    line-height: 1.35;
+    color: var(--color-muted);
+    background: var(--color-mist);
+    border-top: 2px solid var(--color-gold);
+  }
+  .assurances b {
+    font-size: 14px;
+    color: var(--color-ink);
+  }
+
+  /* ---------- Sticky bar (small screens) ---------- */
+  .bar {
+    display: none;
+  }
+  @media (max-width: 1023px) {
+    .bar {
+      position: fixed;
+      inset: auto 0 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 96px 10px 16px;
+      padding-bottom: calc(10px + env(safe-area-inset-bottom));
+      background: rgb(255 255 255 / 0.94);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid var(--color-line);
+      transform: translateY(110%);
+      transition: transform 350ms var(--ease-out-strong);
+    }
+    .bar.is-shown {
+      transform: none;
+    }
+    .bar-price {
+      display: flex;
+      flex-direction: column;
+    }
+    .bar-price strong {
+      font-size: 18px;
+      font-weight: 800;
+    }
+    .bar-price .hud-text {
+      color: var(--color-muted);
+    }
+    .bar-cta {
+      padding: 12px 18px;
+      font-weight: 700;
+      color: #fff;
+      background: var(--color-ink);
+    }
+    .bar-cta.is-rent {
+      background: var(--color-location);
+    }
+  }
+
+  .degressive {
+    align-self: flex-start;
+    margin-top: 10px;
+    padding: 5px 10px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-location);
+    background: color-mix(in srgb, var(--color-location) 10%, white);
+  }
+  .degressive:hover {
+    background: color-mix(in srgb, var(--color-location) 18%, white);
+  }
+
+  /* ---------- Description ---------- */
+  .desc-side {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+  @media (min-width: 1024px) {
+    .desc-side {
+      position: sticky;
+      top: 96px;
+      align-self: start;
+    }
+  }
+  .desc-card {
+    --vf: rgb(0 0 0 / 0.3);
+    --vf-inset: 10px;
+    max-width: 360px;
+    padding: 18px 22px 22px;
+    background: #fff;
+    border: 1px solid var(--color-line);
+  }
+  .desc-card img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 4 / 3;
+    object-fit: contain;
+  }
+  .desc-card .hud-text {
+    margin-top: 10px;
+    color: var(--color-muted);
+  }
+  .desc-price {
+    margin-top: 4px;
+    font-size: 1.3rem;
+    font-weight: 800;
+    font-stretch: 118%;
+  }
+  .details-body {
+    display: grid;
+    gap: 14px;
+  }
+  /* Long descriptions are folded, with a fade, until "Lire la suite". */
+  .details[data-long] .details-body {
+    max-height: 560px;
+    overflow: hidden;
+    mask-image: linear-gradient(#000 70%, transparent);
+    transition: max-height 700ms var(--ease-out-strong);
+  }
+  .details[data-long].is-open .details-body {
+    max-height: none;
+    mask-image: none;
+  }
+  .more {
+    margin-top: 16px;
+    padding: 10px 16px;
+    font-weight: 700;
+    border: 1px solid var(--color-ink);
+  }
+  .more:hover {
+    color: #fff;
+    background: var(--color-ink);
   }
 
   /* ---------- Details ---------- */
   .details {
-    display: grid;
-    gap: 14px;
     max-width: 70ch;
     line-height: 1.65;
     color: var(--color-ink-soft);
   }
   .details h3 {
-    margin-top: 12px;
-    font-size: 1.2rem;
+    margin-top: 16px;
+    padding-left: 14px;
+    font-size: 1.25rem;
     font-weight: 700;
+    font-stretch: 112%;
     color: var(--color-ink);
+    border-left: 3px solid var(--color-gold);
+  }
+  .details .li {
+    padding: 10px 14px 10px 32px !important;
+    background: var(--color-mist);
+  }
+  .details .li::before {
+    left: 14px !important;
+    top: 1.25em !important;
   }
   .details .li {
     position: relative;
@@ -596,6 +918,8 @@ const tip = popFirst
         const i = Number(t.dataset.thumb);
         shots.forEach((s, k) => s.toggleAttribute('data-active', k === i));
         thumbs.forEach((b, k) => b.setAttribute('aria-pressed', String(k === i)));
+        const counter = gallery.querySelector('[data-counter]');
+        if (counter) counter.textContent = String(i + 1).padStart(2, '0');
       }),
     );
     if (matchMedia('(hover: hover) and (pointer: fine)').matches) {
@@ -624,9 +948,51 @@ const tip = popFirst
         out.textContent = 'La date de fin doit suivre la date de début.';
         return;
       }
-      out.textContent = `${days} jour${days > 1 ? 's' : ''} : environ ${fmt.format(days * day)} TTC, hors caution. Le devis final vous est confirmé par l’équipe.`;
+      // Daily rate of the matching tier (data/catalog.ts, RENTAL_TIERS).
+      const tiers: [number, number, number][] = JSON.parse(form.dataset.tiers ?? '[]');
+      const off = tiers.find(([a, b]) => days >= a && days <= b)?.[2] ?? 0;
+      const rate = Math.round(day * (1 - off) * 100) / 100;
+      out.textContent = `${days} jour${days > 1 ? 's' : ''} × ${fmt.format(rate)}${off ? ` (−${Math.round(off * 100)} %)` : ''} : environ ${fmt.format(rate * days)} TTC, hors caution. Le devis final vous est confirmé par l’équipe.`;
     };
-    from.addEventListener('change', update);
-    to.addEventListener('change', update);
+    const quick = [...form.querySelectorAll<HTMLButtonElement>('[data-days]')];
+    const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const mark = (btn?: HTMLButtonElement) => quick.forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+    quick.forEach((b) =>
+      b.addEventListener('click', () => {
+        // From the chosen start date (or tomorrow); the weekend starts on the next Saturday.
+        const start = from.value ? new Date(`${from.value}T12:00`) : new Date(Date.now() + 86400000);
+        if (b.dataset.weekend !== undefined) start.setDate(start.getDate() + ((6 - start.getDay() + 7) % 7));
+        const end = new Date(start);
+        end.setDate(end.getDate() + Number(b.dataset.days) - 1);
+        from.value = iso(start);
+        to.value = iso(end);
+        mark(b);
+        update();
+      }),
+    );
+    from.addEventListener('change', () => (mark(), update()));
+    to.addEventListener('change', () => (mark(), update()));
   });
+
+  // Description: unfold.
+  document.querySelectorAll<HTMLElement>('[data-details]').forEach((d) => {
+    const btn = d.querySelector<HTMLButtonElement>('[data-more]');
+    btn?.addEventListener('click', () => {
+      const open = d.classList.toggle('is-open');
+      btn.setAttribute('aria-expanded', String(open));
+      btn.textContent = open ? 'Réduire' : 'Lire la suite';
+    });
+  });
+
+  // Octobre Rose ends by itself after its last day.
+  document.querySelectorAll<HTMLElement>('[data-rose-until]').forEach((el) => {
+    if (Date.now() > new Date(`${el.dataset.roseUntil}T23:59:59`).getTime()) el.remove();
+  });
+
+  // Small screens: the bar shows once the main button has scrolled out of view.
+  const bar = document.querySelector<HTMLElement>('[data-bar]');
+  const cta = document.querySelector<HTMLElement>('[data-main-cta]');
+  if (bar && cta) {
+    new IntersectionObserver(([e]) => bar.classList.toggle('is-shown', !e.isIntersecting && e.boundingClientRect.top < 0)).observe(cta);
+  }
 </script>

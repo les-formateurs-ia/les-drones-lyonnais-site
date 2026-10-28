@@ -10,6 +10,12 @@ import { Image } from 'astro:assets';
 import popSupport from '../../assets/pop/support.webp';
 import { SHOP_MENU, forSale } from '../../data/catalog';
 import { productPhoto } from '../../lib/product-photo';
+import { OCTOBRE_ROSE, isCampaignOn } from '../../data/campaign';
+
+// Octobre Rose: the black band turns pink and shows the donation, until the end date.
+const rose = isCampaignOn(OCTOBRE_ROSE.until);
+// The awareness ribbon, drawn with three strokes (back tail, loop, front tail).
+const ribbon = { back: 'M50 56 L80 128', loop: 'M50 56 C24 26 34 6 50 6 C66 6 76 26 50 56', front: 'M50 56 L20 128' };
 
 const tabs = await Promise.all(
   SHOP_MENU.map(async (tab) => ({
@@ -29,8 +35,22 @@ const tabs = await Promise.all(
 ---
 
 <section class="shop-hero" aria-labelledby="shop-title">
-  <div class="top">
-    <div class="wrap">
+  <div class:list={['top', rose && 'is-rose']} data-rose-until={rose ? OCTOBRE_ROSE.until : undefined}>
+    {
+      rose && (
+        <div class="ribbons" aria-hidden="true">
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <svg viewBox="0 0 100 136" class="float" style={{ '--n': i }}>
+              <path d={ribbon.back} />
+              <path d={ribbon.loop} />
+              <path d={ribbon.front} />
+            </svg>
+          ))}
+        </div>
+      )
+    }
+    <div class="wrap top-grid">
+      <div class="top-main">
       <nav aria-label="Fil d’Ariane" class="hud-text crumbs">
         <a href="/">Accueil</a>
         <span aria-hidden="true">/</span>
@@ -38,12 +58,40 @@ const tabs = await Promise.all(
       </nav>
       <div class="head">
         <h1 id="shop-title" class="display flex items-start gap-4 text-[clamp(2rem,3.6vw,3.3rem)]">
-          <Square color="var(--color-paper)" class="mt-[0.2em] size-[0.3em] shrink-0" />
+          <Square color={rose ? 'var(--rose)' : 'var(--color-paper)'} class="mt-[0.2em] size-[0.3em] shrink-0" />
           Boutique drones et accessoires
         </h1>
         <p class="lead">Le matériel que nous utilisons en mission, conseillé par des télépilotes. Prix TTC et HT.</p>
       </div>
       <SearchBox types={['vente']} placeholder="Mavic 4 Pro, batterie Mini 5, kit C5…" action="/boutique/" />
+      </div>
+
+      {
+        rose && (
+          <aside class="rose" aria-labelledby="rose-title" data-rose>
+            <svg viewBox="0 0 100 136" class="rose-ribbon" aria-hidden="true">
+              <path d={ribbon.back} />
+              <path d={ribbon.loop} />
+              <path d={ribbon.front} />
+            </svg>
+            <p class="rose-kicker hud-text" id="rose-title">
+              {OCTOBRE_ROSE.label}
+            </p>
+            <p class="rose-amount">
+              {OCTOBRE_ROSE.amount}
+              <span class="rose-heart" aria-hidden="true">
+                ♥
+              </span>
+            </p>
+            <p class="rose-text">{OCTOBRE_ROSE.text}</p>
+            <p class="rose-note hud-text">{OCTOBRE_ROSE.note}</p>
+            <a class="rose-link" href={OCTOBRE_ROSE.link.href}>
+              {OCTOBRE_ROSE.link.label}
+              <span aria-hidden="true">→</span>
+            </a>
+          </aside>
+        )
+      }
     </div>
   </div>
 
@@ -102,11 +150,202 @@ const tabs = await Promise.all(
     background: var(--color-mist);
   }
   .top {
+    position: relative;
+    overflow: hidden;
     padding: 104px 0 36px;
     background:
       radial-gradient(ellipse at 80% 0%, rgb(175 133 74 / 0.22), transparent 55%),
       var(--color-ink);
     color: #fff;
+  }
+  .top-grid {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: 28px 56px;
+    align-items: end;
+  }
+  .top-main {
+    min-width: 0;
+  }
+
+  /* ---------- Octobre Rose ---------- */
+  .top.is-rose {
+    --rose: #ff5ca8;
+    --rose-soft: #ffb6d6;
+    background:
+      radial-gradient(ellipse 50% 70% at 85% 30%, rgb(255 92 168 / 0.32), transparent 70%),
+      radial-gradient(ellipse 40% 60% at 10% 100%, rgb(255 92 168 / 0.16), transparent 70%),
+      linear-gradient(120deg, #0d0308, #1c0613 55%, #2a0a1c);
+  }
+  @media (min-width: 1024px) {
+    .top.is-rose .top-grid {
+      grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+    }
+  }
+  .is-rose .crumbs a:hover {
+    color: var(--rose-soft);
+  }
+  /* Ribbons drifting up in the background. */
+  .ribbons {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .float {
+    position: absolute;
+    bottom: -140px;
+    left: calc(8% + var(--n) * 16%);
+    width: 30px;
+    opacity: 0.18;
+    transform: rotate(calc(var(--n) * 17deg - 40deg));
+  }
+  .float:nth-child(odd) {
+    width: 22px;
+  }
+  .float:nth-child(3n) {
+    width: 40px;
+  }
+  .float path,
+  .rose-ribbon path {
+    fill: none;
+    stroke: var(--rose);
+    stroke-width: 15;
+    stroke-linecap: round;
+  }
+  .rose-ribbon path:nth-child(2),
+  .float path:nth-child(2) {
+    stroke: var(--rose-soft);
+  }
+
+  .rose {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 26px 28px 24px;
+    background: linear-gradient(160deg, rgb(255 92 168 / 0.18), rgb(255 92 168 / 0.05));
+    border: 1px solid rgb(255 150 200 / 0.4);
+    border-radius: 4px;
+    box-shadow:
+      0 0 0 1px rgb(255 92 168 / 0.08),
+      0 30px 60px -30px rgb(255 92 168 / 0.6);
+  }
+  .rose-ribbon {
+    position: absolute;
+    top: -18px;
+    right: 22px;
+    width: 58px;
+    filter: drop-shadow(0 6px 14px rgb(255 92 168 / 0.6));
+  }
+  .rose-kicker {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-transform: uppercase;
+    color: var(--rose-soft);
+  }
+  .rose-kicker::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    background: var(--rose);
+  }
+  .rose-amount {
+    position: relative;
+    margin-top: 8px;
+    font-size: clamp(3.4rem, 6vw, 5rem);
+    font-weight: 800;
+    font-stretch: 125%;
+    letter-spacing: -0.03em;
+    line-height: 0.95;
+    background: linear-gradient(100deg, #fff 0%, var(--rose-soft) 45%, var(--rose) 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+  }
+  .rose-heart {
+    position: absolute;
+    top: -6px;
+    right: -26px;
+    font-size: 22px;
+    color: var(--rose);
+    -webkit-text-fill-color: var(--rose);
+  }
+  .rose-text {
+    margin-top: 12px;
+    max-width: 32ch;
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  .rose-note {
+    margin-top: 10px;
+    color: rgb(255 255 255 / 0.65);
+  }
+  .rose-link {
+    display: inline-flex;
+    gap: 8px;
+    margin-top: 18px;
+    padding: 10px 16px;
+    font-weight: 700;
+    color: #1c0613;
+    background: var(--rose);
+    transition: background-color 200ms ease;
+  }
+  .rose-link span {
+    transition: transform 250ms var(--ease-out-strong);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .rose-link:hover {
+      background: var(--rose-soft);
+    }
+    .rose-link:hover span {
+      transform: translateX(4px);
+    }
+  }
+  .rose-link:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 3px;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .float {
+      animation: drift calc(16s + var(--n) * 3s) linear infinite;
+      animation-delay: calc(var(--n) * -4.5s);
+    }
+    .rose-heart {
+      animation: beat 1.6s ease-in-out infinite;
+    }
+    .rose-ribbon {
+      animation: sway 5s ease-in-out infinite alternate;
+    }
+  }
+  @keyframes drift {
+    to {
+      translate: 0 calc(-100% - 640px);
+      rotate: 40deg;
+    }
+  }
+  @keyframes beat {
+    0%,
+    60%,
+    100% {
+      transform: scale(1);
+    }
+    20% {
+      transform: scale(1.25);
+    }
+    40% {
+      transform: scale(0.95);
+    }
+  }
+  @keyframes sway {
+    from {
+      rotate: -6deg;
+    }
+    to {
+      rotate: 6deg;
+    }
   }
   .crumbs {
     display: flex;
@@ -315,6 +554,14 @@ const tabs = await Promise.all(
 </style>
 
 <script>
+  // Octobre Rose ends by itself: a page built during the campaign drops it afterwards.
+  document.querySelectorAll<HTMLElement>('[data-rose-until]').forEach((top) => {
+    if (Date.now() > new Date(`${top.dataset.roseUntil}T23:59:59`).getTime()) {
+      top.classList.remove('is-rose');
+      top.querySelectorAll('[data-rose], .ribbons').forEach((el) => el.remove());
+    }
+  });
+
   // Tabs with keyboard support (arrows, Home, End) and a sliding gold bar.
   document.querySelectorAll<HTMLElement>('[data-mega]').forEach((mega) => {
     const tabs = [...mega.querySelectorAll<HTMLButtonElement>('[role=tab]')];

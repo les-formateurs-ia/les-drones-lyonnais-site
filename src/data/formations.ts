@@ -2,6 +2,7 @@
 // families (technical: BTP and civil engineering, RS6765; artistic: media and
 // communication, RS6766), each with a certification for the Open category (BAPD), one for
 // the Specific category (CATS), and specialisations.
+import type { MethodStep } from './services';
 
 export type FormationFamily = 'technique' | 'artistique';
 export type FormationLevel = 'open' | 'specifique' | 'specialisation';
@@ -153,9 +154,9 @@ export const FORMATION_PROMISES = [
 ];
 
 /** How a training goes, a real sequence. */
-export const FORMATION_STEPS = [
-  { title: 'Échange', text: 'Nous faisons le point sur votre projet, votre niveau et le financement possible.' },
-  { title: 'Théorie', text: 'Réglementation, météo, sécurité et préparation de mission, en salle à Lyon.' },
-  { title: 'Pratique', text: 'Vols encadrés sur terrain, avec le matériel professionnel de l’équipe.' },
-  { title: 'Certification', text: 'Évaluation et délivrance de la certification correspondant à votre parcours.' },
+export const FORMATION_STEPS: MethodStep[] = [
+  { title: 'Échange', text: 'Nous faisons le point sur votre projet, votre niveau et le financement possible.', pose: 'support' },
+  { title: 'Théorie', text: 'Réglementation, météo, sécurité et préparation de mission, en salle à Lyon.', pose: 'formateur' },
+  { title: 'Pratique', text: 'Vols encadrés sur terrain, avec le matériel professionnel de l’équipe.', pose: 'pilote' },
+  { title: 'Certification', text: 'Évaluation et délivrance de la certification correspondant à votre parcours.', pose: 'permis-bapd' },
 ];

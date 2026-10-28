@@ -1,18 +1,13 @@
 ---
 // /prestations/ — the hub of the drone services, rebuilt from the current page:
-// technical or artistic choice, both catalogues, the five-step method, quote request.
+// technical or artistic choice (two photo cards), both catalogues, the five-step method, quote request.
 import BaseLayout from '../layouts/BaseLayout.astro';
 import JsonLd from '../components/seo/JsonLd.astro';
-import DeckHero, { type DeckFamily } from '../components/ui/DeckHero.astro';
-import { servicePhoto } from '../lib/service-photo';
-import dylan from '../assets/team/dylan-pied.webp';
-import theo from '../assets/team/theo-pied.webp';
+import PrestationsHero from '../components/prestations/PrestationsHero.astro';
 import ServiceCatalog from '../components/prestations/ServiceCatalog.astro';
 import Method from '../components/prestations/Method.astro';
 import FinalCta from '../components/home/FinalCta.astro';
-import PopTip from '../components/ui/PopTip.astro';
-import { SERVICES, FAMILIES, PROMISES, SENSOR_LABEL, servicesOf } from '../data/services';
-import { ACTIVITIES } from '../data/site';
+import { SERVICES } from '../data/services';
 import { SITE } from '../data/site';
 
 // Title and description keep the intent of the current WordPress page.
@@ -20,18 +15,6 @@ const title = 'Prestations drone et audiovisuelles à Lyon | Les Drones Lyonnais
 const description =
   'Inspection, modélisation 3D, prises de vues aériennes et production vidéo : découvrez nos prestations à Lyon et en France. Présentez-nous votre projet.';
 const pageUrl = `${SITE.url}/prestations/`;
-
-const families: DeckFamily[] = await Promise.all(
-  (['technique', 'artistique'] as const).map(async (id) => ({
-    label: id === 'technique' ? 'Technique' : 'Artistique',
-    guide: id === 'technique' ? { photo: dylan, alt: 'Dylan, fondateur des Drones Lyonnais' } : { photo: theo, alt: 'Théo, responsable audiovisuel et formation' },
-    title: FAMILIES[id].title,
-    tagline: FAMILIES[id].tagline,
-    cards: await Promise.all(
-      servicesOf(id).map(async (s) => ({ href: s.href, label: s.label, summary: s.summary, tag: SENSOR_LABEL[s.sensor], photo: await servicePhoto(s.image, 4 / 5) })),
-    ),
-  })),
-);
 
 const structuredData = [
   {
@@ -58,22 +41,22 @@ const structuredData = [
 
 <BaseLayout title={title} description={description} headerOverlay>
   {structuredData.map((data) => <JsonLd slot="head" data={data} />)}
-  <DeckHero
-    crumb="Prestations"
-    title="Prestations drone et audiovisuelles"
-    lead="L’art de capturer l’essentiel, à Lyon et partout en France."
-    color={ACTIVITIES.prestations.color}
-    noun="prestations"
-    families={families}
-    promises={PROMISES}
-  />
-  <ServiceCatalog family="technique" />
-  <ServiceCatalog family="artistique" dark />
-  <Method />
-  <div class="wrap pb-20">
-    <PopTip pose="chantier" title="Les autorisations ? On s’en occupe." action={{ label: 'Demander à Pop', chat: 'Quelle prestation pour mon projet ?' }} class="max-w-[640px]">
-      Étude aéronautique, déclarations, analyse des risques : c’est compris dans chaque mission. Vous ne gérez que votre projet.
-    </PopTip>
+  <PrestationsHero />
+  <!-- The family chosen in the hero comes first (html[data-famille], set by the hero). -->
+  <div class="catalogs">
+    <ServiceCatalog family="technique" />
+    <ServiceCatalog family="artistique" dark />
   </div>
+  <Method />
   <FinalCta title="Besoin d’une solution sur mesure ?" text="Parlez-nous de votre projet : nous revenons vers vous avec une proposition et un devis détaillé." />
 </BaseLayout>
+
+<style>
+  .catalogs {
+    display: flex;
+    flex-direction: column;
+  }
+  :global(html[data-famille='artistique'] #artistique) {
+    order: -1;
+  }
+</style>

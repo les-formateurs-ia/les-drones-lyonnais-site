@@ -1,6 +1,7 @@
 // The drone services: one source for the homepage screen and the /prestations/ page.
 // URLs are the ones indexed on the WordPress site. Summaries come from each service
 // page (meta descriptions), shortened.
+import type { PopPose } from '../components/ui/PopTip.astro';
 
 /**
  * How the drone camera shows a service:
@@ -199,14 +200,21 @@ export const SERVICES: Service[] = [
 
 export const servicesOf = (family: ServiceFamily) => SERVICES.filter((s) => s.family === family);
 
-/** The working method shown on /prestations/ — a real sequence, hence numbered. */
-export const METHOD = [
-  { title: 'Préparation', text: 'Analyse de votre besoin et faisabilité technique.' },
-  { title: 'Autorisations', text: 'Étude aéronautique et autorisations de vol obtenues.' },
-  { title: 'Intervention', text: 'Missions réalisées par nos télépilotes professionnels.' },
-  { title: 'Contrôle qualité', text: 'Vérification rigoureuse des données collectées.' },
-  { title: 'Livrables', text: 'Livrables exploitables, sécurisés et remis dans les délais.' },
+/** The working method shown on /prestations/ — a real sequence, hence numbered.
+ *  `pose`: how Pop illustrates the step (src/assets/pop). */
+export const METHOD: MethodStep[] = [
+  { title: 'Préparation', text: 'Analyse de votre besoin et faisabilité technique.', pose: 'support' },
+  { title: 'Autorisations', text: 'Étude aéronautique et autorisations de vol obtenues.', pose: 'manuel' },
+  { title: 'Intervention', text: 'Missions réalisées par nos télépilotes professionnels.', pose: 'pilote' },
+  { title: 'Contrôle qualité', text: 'Vérification rigoureuse des données collectées.', pose: 'loupe' },
+  { title: 'Livrables', text: 'Livrables exploitables, sécurisés et remis dans les délais.', pose: 'livraison' },
 ];
+
+export interface MethodStep {
+  title: string;
+  text: string;
+  pose: PopPose;
+}
 
 /** The three promises of the current page's header. */
 export const PROMISES = [

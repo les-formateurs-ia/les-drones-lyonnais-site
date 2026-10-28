@@ -203,3 +203,16 @@ export const otherModeOf = (p: Product) => {
   const slug = productPage(p).other;
   return slug && slug !== p.slug ? PRODUCTS.find((q) => q.slug === slug) : undefined;
 };
+
+/** Rental: the daily rate goes down with the length of the rental. Placeholder tiers
+ *  until the team gives its real grid; the booking estimate uses them too. */
+export const RENTAL_TIERS = [
+  { from: 1, to: 1, label: '1 jour', discount: 0 },
+  { from: 2, to: 2, label: '2 jours', discount: 0.1 },
+  { from: 3, to: 4, label: '3 à 4 jours', discount: 0.2 },
+  { from: 5, to: 7, label: '5 à 7 jours', discount: 0.3 },
+  { from: 8, to: Infinity, label: '8 jours et +', discount: 0.4 },
+];
+export const tierFor = (days: number) => RENTAL_TIERS.find((t) => days >= t.from && days <= t.to) ?? RENTAL_TIERS[RENTAL_TIERS.length - 1];
+/** Daily rate (TTC) for a rental of `days` days, rounded to the cent. */
+export const dailyRate = (base: number, days: number) => Math.round(base * (1 - tierFor(days).discount) * 100) / 100;

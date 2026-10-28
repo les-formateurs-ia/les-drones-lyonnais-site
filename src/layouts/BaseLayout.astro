@@ -4,6 +4,7 @@ import SEOHead from '../components/seo/SEOHead.astro';
 import Header from '../components/layout/Header.astro';
 import Footer from '../components/layout/Footer.astro';
 import PopChat, { type PopContext } from '../components/layout/PopChat.astro';
+import type { ActivityId } from '../data/site';
 
 interface Props {
   title: string;
@@ -16,9 +17,11 @@ interface Props {
   headerCompact?: boolean;
   /** Pop's chat context (defaults from the URL). */
   pop?: PopContext;
+  /** Homepage: default mode of the page (see lib/mode.ts). */
+  mode?: ActivityId;
 }
 
-const { title, description, image, noindex, headerOverlay = false, headerCompact = false } = Astro.props;
+const { title, description, image, noindex, headerOverlay = false, headerCompact = false, mode } = Astro.props;
 const path = Astro.url.pathname;
 const pop: PopContext = Astro.props.pop ?? {
   page:
@@ -37,12 +40,13 @@ const pop: PopContext = Astro.props.pop ?? {
 ---
 
 <!doctype html>
-<html lang="fr">
+<html lang="fr" data-mode={mode}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <!-- Lets CSS hide not-yet-revealed elements only when the reveal script can run. -->
     <script is:inline>document.documentElement.classList.add('js');</script>
+    {mode && <script is:inline set:html={`(function(){var h=document.documentElement,ok=['prestations','boutique','location','formations'],m=new URLSearchParams(location.search).get('mode');try{m=m||sessionStorage.getItem('ldl-mode')}catch(e){}if(ok.indexOf(m)>-1)h.dataset.mode=m})();`} />}
     <link rel="preload" href="/fonts/archivo-variable.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="icon" href="/favicon.png" type="image/png" />
     <meta name="theme-color" content="#ffffff" />

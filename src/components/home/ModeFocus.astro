@@ -1,0 +1,236 @@
+---
+// Right under the hero: what the chosen mode is about, with four real offers (services,
+// drones for sale, rental packs or trainings). All four versions are in the HTML; the
+// page shows the one of the current mode (html[data-mode], see lib/mode.ts).
+import Square from '../ui/Square.astro';
+import { MODE_LIST, FOCUS } from '../../data/modes';
+import { formatPrice, productUrl } from '../../data/catalog';
+import { LEVEL_LABEL } from '../../data/formations';
+import { servicePhoto, type ServicePhoto } from '../../lib/service-photo';
+import { productPhoto } from '../../lib/product-photo';
+import type { ActivityId } from '../../data/site';
+
+interface Card {
+  title: string;
+  meta: string;
+  text: string;
+  href: string;
+  photo: ServicePhoto | null;
+  /** Product shots are on white: shown whole, not cropped. */
+  product?: boolean;
+}
+
+const RATIO = 4 / 3;
+const cards: Record<ActivityId, Card[]> = {
+  prestations: await Promise.all(
+    FOCUS.prestations.map(async (s) => ({
+      title: s.label,
+      meta: s.family === 'technique' ? 'Prestation technique' : 'Prestation artistique',
+      text: s.summary,
+      href: s.href,
+      photo: await servicePhoto(s.image, RATIO),
+    })),
+  ),
+  boutique: await Promise.all(
+    FOCUS.boutique.map(async (p) => ({
+      title: p.name,
+      meta: `${formatPrice(p.priceTTC)} TTC`,
+      text: p.summary,
+      href: productUrl(p),
+      photo: await productPhoto(p, RATIO),
+      product: true,
+    })),
+  ),
+  location: await Promise.all(
+    FOCUS.location.map(async (p) => ({
+      title: p.name,
+      meta: `${formatPrice(p.priceTTC)} TTC / jour`,
+      text: p.summary,
+      href: productUrl(p),
+      photo: await productPhoto(p, RATIO),
+      product: true,
+    })),
+  ),
+  formations: await Promise.all(
+    FOCUS.formations.map(async (f) => ({
+      title: f.title,
+      meta: `${LEVEL_LABEL[f.level]} · ${f.duration}`,
+      text: f.scope,
+      href: '/formations-drone-a-lyon/',
+      photo: await servicePhoto(f.image, RATIO),
+    })),
+  ),
+};
+---
+
+<section class="focus section-pad bg-ink text-white" aria-label="Notre offre">
+  <div class="wrap">
+    {
+      MODE_LIST.map((m) => (
+        <div data-for={m.id}>
+          <div class="head">
+            <div>
+              <p class="kicker hud-text" style={{ '--i': 0 }}>
+                <Square color="var(--accent)" class="size-[9px]" />
+                {m.label}
+              </p>
+              {/* Hidden modes are display: none, so only one of these h2 is ever read. */}
+              <h2 class="title display" style={{ '--i': 1 }}>
+                {m.focus.title}
+              </h2>
+            </div>
+            <div class="head-side" style={{ '--i': 2 }}>
+              <p class="intro">{m.focus.text}</p>
+              <a class="more" href={m.focus.more.href}>
+                {m.focus.more.label}
+                <span aria-hidden="true">→</span>
+              </a>
+            </div>
+          </div>
+
+          <ul class="cards">
+            {cards[m.id].map((c, i) => (
+              <li style={{ '--i': i + 3 }}>
+                <a class="card" href={c.href}>
+                  <span class:list={['card-img', c.product && 'is-product']}>
+                    {c.photo && <img src={c.photo.src} srcset={c.photo.srcset} sizes="(min-width: 1024px) 300px, (min-width: 640px) 45vw, 90vw" alt="" loading="lazy" decoding="async" width={c.photo.width} height={c.photo.height} />}
+                  </span>
+                  <span class="card-meta hud-text">{c.meta}</span>
+                  <span class="card-title">{c.title}</span>
+                  <span class="card-text">{c.text}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))
+    }
+  </div>
+</section>
+
+<style>
+  .head {
+    display: grid;
+    gap: 24px 64px;
+    align-items: end;
+    margin-bottom: clamp(36px, 5vw, 56px);
+  }
+  @media (min-width: 1024px) {
+    .head {
+      grid-template-columns: 1.2fr 1fr;
+    }
+  }
+  .kicker {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 0.7);
+  }
+  .title {
+    margin-top: 16px;
+    font-size: clamp(2rem, 4vw, 3.4rem);
+  }
+  .intro {
+    max-width: 44ch;
+    font-size: 17px;
+    line-height: 1.55;
+    color: rgb(255 255 255 / 0.7);
+  }
+  .more {
+    display: inline-flex;
+    gap: 8px;
+    margin-top: 16px;
+    font-weight: 600;
+    border-bottom: 1px solid var(--accent);
+    padding-bottom: 2px;
+  }
+  .more span {
+    transition: transform 250ms var(--ease-out-strong);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .more:hover span {
+      transform: translateX(4px);
+    }
+  }
+
+  .cards {
+    display: grid;
+    gap: 2px;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+  }
+  @media (min-width: 1024px) {
+    .cards {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+  .card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 12px 12px 22px;
+    background: rgb(255 255 255 / 0.04);
+    border-top: 2px solid transparent;
+    transition:
+      background-color 250ms ease,
+      border-color 250ms ease;
+  }
+  .card-img {
+    display: block;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    background: #111;
+  }
+  .card-img.is-product {
+    background: #fff;
+  }
+  .card-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: grayscale(1);
+    transition:
+      filter 400ms ease,
+      transform 900ms var(--ease-out-strong);
+  }
+  .card-img.is-product img {
+    object-fit: contain;
+    filter: none;
+  }
+  .card-meta {
+    margin-top: 18px;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .card-title {
+    margin-top: 8px;
+    font-size: 19px;
+    font-weight: 700;
+    font-stretch: 110%;
+    line-height: 1.2;
+  }
+  .card-text {
+    margin-top: 8px;
+    font-size: 15px;
+    line-height: 1.5;
+    color: rgb(255 255 255 / 0.62);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .card:hover {
+      background: rgb(255 255 255 / 0.08);
+      border-top-color: var(--accent);
+    }
+    .card:hover .card-img img {
+      filter: none;
+      transform: scale(1.04);
+    }
+  }
+  .card:focus-visible {
+    outline: 2px solid var(--color-gold);
+    outline-offset: 2px;
+  }
+</style>

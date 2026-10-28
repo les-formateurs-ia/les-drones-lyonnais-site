@@ -1,558 +1,343 @@
 ---
-// The first screen is the live feed of a drone in flight. Its flight modes are the
-// four ways in: pointing at one switches the feed and the flight data, choosing it
-// opens the page. The screen boots up once on load, then stays behind the page while
-// the content scrolls over it (curtain).
-//
-// Feeds are photos for now; each mode can take a short aerial video later. The
-// Formations photo is an Unsplash placeholder (Unsplash License) until the client
-// provides one of their own training sessions.
-import { Image } from 'astro:assets';
-import type { ImageMetadata } from 'astro';
-import feedPrestations from '../../assets/images/feed-prestations.jpg';
-import feedBoutique from '../../assets/images/feed-boutique.jpg';
-import feedLocation from '../../assets/images/feed-location.jpg';
-import feedFormations from '../../assets/images/feed-formations.jpg';
+// The first screen: a drone in real time in the middle of the page, and the four modes
+// of the site under it (Prestations, Boutique, Location, Formations). Choosing a mode
+// changes the drone's set and flight (lib/hero-drone.ts), the texts and labels around
+// it, and the rest of the homepage (html[data-mode], lib/mode.ts).
+// The page works without WebGL or JavaScript: texts and links are plain HTML, the
+// drone is an enhancement loaded after the first paint.
+import Button from '../ui/Button.astro';
 import Square from '../ui/Square.astro';
 import { HERO } from '../../data/home';
-import { ACTIVITIES, type Activity } from '../../data/site';
-
-interface Mode {
-  activity: Activity;
-  text: string;
-  /** What choosing this mode leads to. */
-  cue: string;
-  feed: ImageMetadata;
-  /** Crop anchor of the feed photo. */
-  focus: string;
-  /** Flight data shown on the screen for this mode. */
-  flight: { label: string; altitude: number; speed: number; heading: number };
-}
-
-const modes: Mode[] = [
-  {
-    activity: ACTIVITIES.prestations,
-    cue: 'Voir les prestations',
-    text: 'Prises de vues, inspections et relevés 3D',
-    feed: feedPrestations,
-    focus: '50% 60%',
-    flight: { label: 'Caméra thermique', altitude: 42, speed: 6.4, heading: 284 },
-  },
-  {
-    activity: ACTIVITIES.boutique,
-    cue: 'Voir la boutique',
-    text: 'Drones, kits C5 et accessoires',
-    feed: feedBoutique,
-    focus: '50% 55%',
-    flight: { label: 'Stationnaire', altitude: 1.2, speed: 0, heading: 12 },
-  },
-  {
-    activity: ACTIVITIES.location,
-    cue: 'Louer du matériel',
-    text: 'Drones, caméras, son et lumière',
-    feed: feedLocation,
-    focus: '50% 40%',
-    flight: { label: 'Au sol', altitude: 0, speed: 0, heading: 96 },
-  },
-  {
-    activity: ACTIVITIES.formations,
-    cue: 'Voir les formations',
-    text: 'Pilotage de drone et métiers de l’image',
-    feed: feedFormations,
-    focus: '50% 50%',
-    flight: { label: 'Mode école', altitude: 30, speed: 4.2, heading: 198 },
-  },
-];
-
-// Black disappears on the feed: the shop's square turns white there.
-const squareColor = (a: Activity) => (a.id === 'boutique' ? 'var(--color-paper)' : a.color);
-const fr = (n: number) => n.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-const first = modes[0];
-// Compass tape: a label every 45°, three turns long so it can slide either way.
-// The middle turn is centred on the heading (see `tapeOffset`, mirrored in the script).
-const CARDINALS = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'];
-const TICK = 70;
-const COMPASS = 420;
-const tapeOffset = (heading: number) => COMPASS / 2 - ((8 + heading / 45) * TICK + TICK / 2);
+import { MODE_LIST } from '../../data/modes';
 ---
 
-<section class="hero" aria-labelledby="hero-title" data-mode={first.activity.id}>
-  <!-- Feeds -->
-  <div class="feeds" aria-hidden="true">
+<section class="hero" aria-labelledby="hero-title">
+  <div class="stage">
+    <canvas class="drone" data-drone aria-hidden="true"></canvas>
+    <div class="callouts" aria-hidden="true">
+      {
+        MODE_LIST.map((m) =>
+          m.callouts.map((c, i) => (
+            <div class="callout" data-for={m.id} data-anchor={c.anchor} style={{ '--i': i + 3 }}>
+              <span class="dot" />
+              <span class="line" />
+              <span class="tag">
+                <b>{c.title}</b>
+                <span>{c.text}</span>
+              </span>
+            </div>
+          )),
+        )
+      }
+    </div>
+  </div>
+
+  <div class="copy">
+    <h1 id="hero-title" class="sr-only">{HERO.title}</h1>
     {
-      modes.map((mode, i) => (
-        <div class="feed" data-feed={mode.activity.id}>
-          <Image
-            src={mode.feed}
-            alt=""
-            widths={[640, 960, 1280, 1920]}
-            sizes="100vw"
-            loading={i === 0 ? 'eager' : 'lazy'}
-            fetchpriority={i === 0 ? 'high' : 'auto'}
-            class="feed-img"
-            style={{ objectPosition: mode.focus }}
-          />
+      MODE_LIST.map((m) => (
+        <div class="copy-mode" data-for={m.id}>
+          <p class="kicker hud-text" style={{ '--i': 0 }}>
+            <Square color="var(--accent)" class="size-[9px]" />
+            {m.kicker}
+          </p>
+          <p class="title display" style={{ '--i': 1 }}>
+            {m.title}
+          </p>
+          <p class="text" style={{ '--i': 2 }}>
+            {m.text}
+          </p>
+          <div class="actions" style={{ '--i': 3 }}>
+            <Button href={m.cta.href} variant="gold">
+              {m.cta.label}
+            </Button>
+            <Button href={m.secondary.href} variant="outline-light" data-pop-open={m.secondary.popAsk ? '' : undefined} data-pop-ask={m.secondary.popAsk}>
+              {m.secondary.label}
+            </Button>
+          </div>
         </div>
       ))
     }
-    <div class="grain"></div>
-    <div class="vignette"></div>
   </div>
 
-  <!-- On-screen display -->
-  <div class="hud" aria-hidden="true">
-    <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
-
-    <div class="hud-top">
-      <span class="rec"><span class="rec-dot"></span>REC <span data-timecode>00:00:00:00</span></span>
-      <span class="hud-mode" data-flight-label>{first.flight.label}</span>
-      <span class="hud-sys">GPS 18 <span class="bars"><i></i><i></i><i></i><i></i></span> 78 %</span>
-    </div>
-
-    <div class="compass" data-tick={TICK} data-width={COMPASS}>
-      <div class="tape" style={{ transform: `translateX(${tapeOffset(first.flight.heading)}px)` }}>
-        {
-          Array.from({ length: 3 }).flatMap(() =>
-            CARDINALS.map((c) => (
-              <span class="tick">
-                <b>{c}</b>
-              </span>
-            )),
-          )
-        }
-      </div>
-      <span class="heading" data-heading>{first.flight.heading}°</span>
-    </div>
-
-    <div class="horizon"><span></span></div>
-    <div class="reticle"></div>
-
-    <div class="gauge left">
-      <span class="gauge-label">ALT</span>
-      <span class="gauge-value"><span data-altitude>{fr(first.flight.altitude)}</span> m</span>
-    </div>
-    <div class="gauge right">
-      <span class="gauge-label">VIT</span>
-      <span class="gauge-value"><span data-speed>{fr(first.flight.speed)}</span> m/s</span>
-    </div>
-
-    <div class="coords">45,7640° N &nbsp; 4,8357° E &nbsp; Lyon</div>
+  <div class="status hud-text" aria-hidden="true">
+    <span class="status-dot"></span>
+    {
+      MODE_LIST.map((m) => (
+        <span class="status-text" data-for={m.id}>
+          {m.status}
+        </span>
+      ))
+    }
+    <span class="status-drag">· Faites glisser pour tourner le drone</span>
   </div>
 
-  <!-- Flight modes = the four activities -->
-  <div class="selector">
-    <h1 id="hero-title" class="caption">{HERO.title}</h1>
-    <ul class="modes" aria-label="Nos activités">
-      {
-        modes.map((mode) => (
-          <li class="mode" data-group={mode.activity.id === 'boutique' || mode.activity.id === 'location' ? 'shop' : undefined}>
-            <a href={mode.activity.href} class="mode-link" data-target={mode.activity.id}>
-              <span class="mode-label">
-                <Square color={squareColor(mode.activity)} class="size-[0.32em]" />
-                {mode.activity.label}
-              </span>
-              <span class="mode-text">{mode.text}</span>
-              <span class="mode-cue" aria-hidden="true">{mode.cue}</span>
-              <span class="mode-bar" aria-hidden="true" />
-            </a>
-          </li>
-        ))
-      }
-    </ul>
+  <!-- The 3D model is CC BY: credit required. -->
+  <p class="credit hud-text">
+    Modèle 3D : <a href="https://sketchfab.com/3d-models/dji-mavic-3-c5a5abae1dea468ab73b1bdc7d616fa6" rel="noopener">DJI Mavic 3</a> par llirikslon, <a href="https://creativecommons.org/licenses/by/4.0/deed.fr" rel="noopener license">CC BY 4.0</a>
+  </p>
+
+  <div class="modes" role="radiogroup" aria-label="Que recherchez-vous ?" data-modes>
+    {
+      MODE_LIST.map((m, i) => (
+        <button type="button" role="radio" class="mode" data-mode-btn={m.id} aria-checked="false" tabindex="-1" style={{ '--c': m.accent }}>
+          <span class="mode-num hud-text">0{i + 1}</span>
+          <span class="mode-label">
+            <Square color={m.accent} class="size-[0.32em]" />
+            {m.label}
+          </span>
+          <span class="mode-hint">{m.hint}</span>
+          <span class="mode-bar" aria-hidden="true" />
+        </button>
+      ))
+    }
   </div>
 
   <!-- Darkens as the page scrolls over the hero. -->
   <div class="shade" aria-hidden="true"></div>
-
-  <script type="application/json" data-flight set:html={JSON.stringify(Object.fromEntries(modes.map((m) => [m.activity.id, m.flight])))} />
 </section>
 
 <style>
   .hero {
     position: relative;
     height: 100svh;
-    min-height: 600px;
+    min-height: 640px;
     overflow: hidden;
-    background: #000;
+    background: #050506;
     color: #fff;
   }
 
-  /* ---------- Feeds ---------- */
-  .feeds {
-    position: absolute;
-    inset: 0;
-    transform-origin: 50% 46%;
-  }
-  .feed {
-    position: absolute;
-    inset: -3%;
-    opacity: 0;
-    transition: opacity 700ms var(--ease-out-strong);
-  }
-  .feed-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transform: scale(1.06);
-    transition: transform 1200ms var(--ease-out-strong);
-  }
-  .hero[data-mode='prestations'] [data-feed='prestations'],
-  .hero[data-mode='boutique'] [data-feed='boutique'],
-  .hero[data-mode='location'] [data-feed='location'],
-  .hero[data-mode='formations'] [data-feed='formations'] {
-    opacity: 1;
-  }
-  .hero[data-mode='prestations'] [data-feed='prestations'] .feed-img,
-  .hero[data-mode='boutique'] [data-feed='boutique'] .feed-img,
-  .hero[data-mode='location'] [data-feed='location'] .feed-img,
-  .hero[data-mode='formations'] [data-feed='formations'] .feed-img {
-    transform: scale(1);
-    animation: hover-drift 16s ease-in-out infinite alternate;
-  }
-  @keyframes hover-drift {
-    to {
-      transform: scale(1.07) translate(-1.2%, 0.8%);
-    }
-  }
-
-  /* Sensor grain, and a burst of static when the feed switches. */
-  .grain {
-    position: absolute;
-    inset: 0;
-    opacity: 0.08;
-    mix-blend-mode: overlay;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-    pointer-events: none;
-  }
-  .hero.is-switching .grain {
-    animation: static 260ms steps(3) both;
-  }
-  @keyframes static {
-    0% {
-      opacity: 0.45;
-      transform: translateX(-2%);
-    }
-    50% {
-      opacity: 0.3;
-      transform: translateX(2%);
-    }
-    100% {
-      opacity: 0.08;
-      transform: none;
-    }
-  }
-  .vignette {
+  /* ---------- Stage: the drone, on a glow of the mode's colour ---------- */
+  .stage {
     position: absolute;
     inset: 0;
     background:
-      linear-gradient(rgb(0 0 0 / 0.55), rgb(0 0 0 / 0) 28%),
-      linear-gradient(rgb(0 0 0 / 0) 45%, rgb(0 0 0 / 0.82)),
-      radial-gradient(ellipse at center, rgb(0 0 0 / 0) 55%, rgb(0 0 0 / 0.35));
+      radial-gradient(ellipse 55% 45% at 50% 52%, color-mix(in oklab, var(--accent) 24%, transparent), transparent 70%),
+      radial-gradient(ellipse 90% 60% at 50% 110%, color-mix(in oklab, var(--accent) 12%, transparent), transparent 70%),
+      linear-gradient(#000, #070708 60%, #0b0b0d);
   }
-
-  /* ---------- On-screen display ---------- */
-  .hud {
+  .drone {
     position: absolute;
     inset: 0;
-    z-index: 2;
-    pointer-events: none;
-    font-stretch: 75%;
-    font-size: 13px;
-    font-weight: 500;
-    letter-spacing: 0.04em;
-    font-variant-numeric: tabular-nums;
-    color: rgb(255 255 255 / 0.9);
-  }
-  .corner {
-    position: absolute;
-    width: 28px;
-    height: 28px;
-    border: solid rgb(255 255 255 / 0.7);
-    border-width: 0;
-  }
-  .corner.tl {
-    top: 92px;
-    left: clamp(16px, 3vw, 40px);
-    border-top-width: 1.5px;
-    border-left-width: 1.5px;
-  }
-  .corner.tr {
-    top: 92px;
-    right: clamp(16px, 3vw, 40px);
-    border-top-width: 1.5px;
-    border-right-width: 1.5px;
-  }
-  .corner.bl {
-    bottom: 24px;
-    left: clamp(16px, 3vw, 40px);
-    border-bottom-width: 1.5px;
-    border-left-width: 1.5px;
-  }
-  .corner.br {
-    bottom: 24px;
-    right: clamp(16px, 3vw, 40px);
-    border-bottom-width: 1.5px;
-    border-right-width: 1.5px;
-  }
-
-  .hud-top {
-    position: absolute;
-    top: 104px;
-    inset-inline: calc(clamp(16px, 3vw, 40px) + 40px);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  .rec {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .rec-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #ff3b30;
-    animation: blink 1.2s steps(1) infinite;
-  }
-  @keyframes blink {
-    50% {
-      opacity: 0.2;
-    }
-  }
-  .hud-mode {
-    padding: 4px 10px;
-    border: 1px solid rgb(255 255 255 / 0.45);
-  }
-  .hud-sys {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .bars {
-    display: inline-flex;
-    align-items: flex-end;
-    gap: 2px;
-    height: 10px;
-  }
-  .bars i {
-    width: 3px;
-    background: currentColor;
-  }
-  .bars i:nth-child(1) {
-    height: 30%;
-  }
-  .bars i:nth-child(2) {
-    height: 55%;
-  }
-  .bars i:nth-child(3) {
-    height: 80%;
-  }
-  .bars i:nth-child(4) {
+    width: 100%;
     height: 100%;
-    opacity: 0.35;
+    cursor: grab;
+    touch-action: pan-y;
+    opacity: 0;
+    transition: opacity 1200ms ease;
+  }
+  .drone[data-ready] {
+    opacity: 1;
+  }
+  .drone[data-dragging] {
+    cursor: grabbing;
   }
 
-  .compass {
+  /* Labels pinned to parts of the drone (positioned by the script). */
+  .callouts {
     position: absolute;
-    top: 138px;
-    left: 50%;
-    width: 420px;
-    height: 52px;
-    translate: -50% 0;
-    overflow: hidden;
-    mask-image: linear-gradient(90deg, transparent, #000 25%, #000 75%, transparent);
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 600ms ease;
   }
-  .tape {
+  .hero[data-live] .callouts {
+    opacity: 1;
+  }
+  .callout {
     position: absolute;
     top: 0;
     left: 0;
-    display: flex;
-    transition: transform 700ms var(--ease-out-strong);
+    will-change: transform;
   }
-  .tick {
-    width: 70px;
-    flex-shrink: 0;
-    text-align: center;
-    background: linear-gradient(currentColor, currentColor) no-repeat center bottom / 1px 6px;
-    padding-bottom: 8px;
-  }
-  .tick b {
-    font-weight: 600;
-  }
-  .heading {
+  .dot {
     position: absolute;
-    top: 30px;
-    left: 50%;
-    translate: -50% 0;
-    padding: 1px 6px;
-    background: #fff;
-    color: #000;
-    font-weight: 700;
-  }
-
-  .reticle {
-    position: absolute;
-    top: 46%;
-    left: 50%;
-    width: 64px;
-    height: 64px;
-    translate: -50% -50%;
-    background:
-      linear-gradient(currentColor, currentColor) no-repeat center / 1.5px 14px,
-      linear-gradient(currentColor, currentColor) no-repeat center / 14px 1.5px;
+    width: 9px;
+    height: 9px;
+    margin: -4.5px 0 0 -4.5px;
     border-radius: 50%;
-    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.35);
+    background: var(--accent);
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent) 30%, transparent);
   }
-  .horizon {
+  .line {
     position: absolute;
-    top: 46%;
-    left: 50%;
-    width: min(560px, 60vw);
-    translate: -50% -50%;
-  }
-  .horizon span {
-    display: block;
     height: 1px;
-    background: linear-gradient(90deg, rgb(255 255 255 / 0.7) 0 28%, transparent 28% 72%, rgb(255 255 255 / 0.7) 72%);
+    width: var(--len, 90px);
+    transform-origin: 0 0;
+    transform: rotate(var(--angle, 0deg));
+    background: linear-gradient(90deg, var(--accent), rgb(255 255 255 / 0.5));
   }
-
-  .gauge {
+  .tag {
     position: absolute;
-    top: 46%;
-    translate: 0 -50%;
     display: flex;
     flex-direction: column;
     gap: 2px;
-    padding-block: 34px;
-    background: repeating-linear-gradient(rgb(255 255 255 / 0.55) 0 1px, transparent 1px 10px) no-repeat 0 0 / 10px 100%;
+    width: max-content;
+    max-width: 210px;
+    padding: 8px 12px;
+    transform: translate(var(--tx, 0), var(--ty, 0)) translate(var(--side, 0%), -50%);
+    border-left: 2px solid var(--accent);
+    background: rgb(10 10 12 / 0.6);
+    backdrop-filter: blur(10px);
+    font-size: 13px;
+    line-height: 1.3;
+    color: rgb(255 255 255 / 0.7);
   }
-  .gauge.left {
-    left: calc(clamp(16px, 3vw, 40px) + 8px);
-    padding-left: 20px;
-  }
-  .gauge.right {
-    right: calc(clamp(16px, 3vw, 40px) + 8px);
-    padding-right: 20px;
-    align-items: flex-end;
-    background-position: 100% 0;
-  }
-  .gauge-label {
-    opacity: 0.7;
-  }
-  .gauge-value {
-    font-size: 20px;
-    font-weight: 700;
+  .tag b {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
   }
 
-  .coords {
+  /* ---------- Copy (left) ---------- */
+  .copy {
     position: absolute;
-    right: calc(clamp(16px, 3vw, 40px) + 40px);
-    bottom: 32px;
-    opacity: 0.75;
+    top: 50%;
+    left: clamp(16px, 4.5vw, 72px);
+    z-index: 2;
+    width: min(31rem, 31vw);
+    translate: 0 -56%;
+  }
+  .kicker {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 0.75);
+  }
+  .title {
+    margin-top: 18px;
+    font-size: clamp(2rem, 3.3vw, 3.4rem);
+  }
+  .text {
+    margin-top: 20px;
+    max-width: 40ch;
+    font-size: 17px;
+    line-height: 1.55;
+    color: rgb(255 255 255 / 0.72);
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 30px;
+  }
+
+  /* ---------- Status ---------- */
+  .status {
+    position: absolute;
+    right: clamp(16px, 4.5vw, 72px);
+    bottom: calc(clamp(20px, 3.5vh, 36px) + 104px);
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 0.6);
+  }
+  .status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: blink 1.6s ease-in-out infinite;
+  }
+  @keyframes blink {
+    50% {
+      opacity: 0.25;
+    }
+  }
+
+  .credit {
+    position: absolute;
+    left: clamp(16px, 4.5vw, 72px);
+    bottom: calc(clamp(20px, 3.5vh, 36px) + 104px);
+    z-index: 2;
+    color: rgb(255 255 255 / 0.4);
+  }
+  .credit a {
+    text-decoration: underline;
+    text-underline-offset: 2px;
   }
 
   /* ---------- Mode selector ---------- */
-  .selector {
-    position: absolute;
-    inset: auto 0 0;
-    z-index: 3;
-    padding: 0 clamp(16px, 3vw, 40px) 64px;
-  }
-  .caption {
-    margin: 0 0 18px clamp(0px, 1vw, 12px);
-    font-size: 14px;
-    font-weight: 500;
-    color: rgb(255 255 255 / 0.8);
-  }
+  /* Centred under the drone, clear of Pop's button in the bottom right corner. */
   .modes {
+    position: absolute;
+    bottom: clamp(20px, 3.5vh, 36px);
+    left: 50%;
+    z-index: 3;
+    width: min(1080px, calc(100% - 240px));
+    translate: -50% 0;
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 2px;
   }
-  /* Each activity is a clear, glassy panel over the feed. */
-  .mode-link {
+  .mode {
     position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    height: 100%;
-    padding: clamp(18px, 2vw, 28px);
-    color: #fff;
-    background: rgb(0 0 0 / 0.35);
-    transition: background-color 300ms ease;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: baseline;
+    gap: 4px 14px;
+    padding: 18px 20px 20px;
+    text-align: left;
+    color: rgb(255 255 255 / 0.55);
+    background: rgb(255 255 255 / 0.03);
+    border-top: 1px solid rgb(255 255 255 / 0.14);
+    backdrop-filter: blur(8px);
+    cursor: pointer;
+    transition:
+      color 250ms ease,
+      background-color 250ms ease;
+  }
+  .mode-num {
+    grid-row: span 2;
   }
   .mode-label {
     display: flex;
     align-items: center;
-    gap: 0.35em;
-    font-size: clamp(1.6rem, 2.7vw, 2.8rem);
+    gap: 0.4em;
+    font-size: clamp(1.15rem, 1.6vw, 1.6rem);
     font-weight: 700;
     font-stretch: 118%;
-    letter-spacing: -0.02em;
-    line-height: 1.05;
+    letter-spacing: -0.01em;
+    line-height: 1.1;
   }
-  .mode-text {
-    max-width: 28ch;
-    font-size: 15px;
-    line-height: 1.4;
-    color: rgb(255 255 255 / 0.85);
-  }
-  .mode-cue {
-    margin-top: auto;
-    padding-top: 6px;
+  .mode-hint {
     font-size: 14px;
-    font-weight: 600;
-    color: var(--color-gold);
-    opacity: 0;
-    transform: translateY(6px);
-    transition:
-      opacity 300ms ease,
-      transform 300ms var(--ease-out-strong);
+    color: rgb(255 255 255 / 0.5);
   }
-  /* Bar on top of the active mode: gold, filling while the modes cycle. */
   .mode-bar {
     position: absolute;
-    inset: 0 0 auto;
-    height: 3px;
-    background: var(--color-gold);
+    inset: -1px 0 auto;
+    height: 2px;
+    background: var(--c);
     transform: scaleX(0);
     transform-origin: left;
-  }
-  .hero[data-mode='prestations'] [data-target='prestations'],
-  .hero[data-mode='boutique'] [data-target='boutique'],
-  .hero[data-mode='location'] [data-target='location'],
-  .hero[data-mode='formations'] [data-target='formations'] {
-    background: rgb(0 0 0 / 0.7);
-  }
-  .hero[data-mode='prestations'] [data-target='prestations'] .mode-cue,
-  .hero[data-mode='boutique'] [data-target='boutique'] .mode-cue,
-  .hero[data-mode='location'] [data-target='location'] .mode-cue,
-  .hero[data-mode='formations'] [data-target='formations'] .mode-cue {
-    opacity: 1;
-    transform: none;
-  }
-  .hero[data-mode='prestations'] [data-target='prestations'] .mode-bar,
-  .hero[data-mode='boutique'] [data-target='boutique'] .mode-bar,
-  .hero[data-mode='location'] [data-target='location'] .mode-bar,
-  .hero[data-mode='formations'] [data-target='formations'] .mode-bar {
-    transform: scaleX(1);
     transition: transform 500ms var(--ease-out-strong);
   }
-  .hero.is-cycling[data-mode='prestations'] [data-target='prestations'] .mode-bar,
-  .hero.is-cycling[data-mode='boutique'] [data-target='boutique'] .mode-bar,
-  .hero.is-cycling[data-mode='location'] [data-target='location'] .mode-bar,
-  .hero.is-cycling[data-mode='formations'] [data-target='formations'] .mode-bar {
-    animation: fill var(--cycle, 4200ms) linear both;
+  .mode[aria-checked='true'] {
+    color: #fff;
+    background: rgb(255 255 255 / 0.08);
   }
-  @keyframes fill {
-    from {
-      transform: scaleX(0);
+  .mode[aria-checked='true'] .mode-bar {
+    transform: scaleX(1);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .mode:hover {
+      color: #fff;
+      background: rgb(255 255 255 / 0.06);
+    }
+    .mode:hover .mode-bar {
+      transform: scaleX(0.25);
+    }
+    .mode[aria-checked='true']:hover .mode-bar {
+      transform: scaleX(1);
     }
   }
-  .mode-link:focus-visible {
-    outline-color: #fff;
-    outline-offset: 4px;
+  .mode:focus-visible {
+    outline: 2px solid var(--color-gold);
+    outline-offset: -2px;
   }
 
   .shade {
@@ -564,106 +349,109 @@ const tapeOffset = (heading: number) => COMPASS / 2 - ((8 + heading / 45) * TICK
     pointer-events: none;
   }
 
-  /* ---------- Small screens: same idea, lighter display ---------- */
-  @media (max-width: 1023px) {
-    .compass,
-    .horizon,
-    .coords,
-    .hud-sys {
+  /* ---------- Medium screens: no labels on the drone ---------- */
+  @media (max-width: 1100px) {
+    .callouts {
       display: none;
-    }
-    .modes {
-      grid-template-columns: 1fr 1fr;
-    }
-    .mode-link {
-      padding: 16px;
-      gap: 6px;
-    }
-    .mode-cue {
-      display: none;
-    }
-    .selector {
-      padding-bottom: 36px;
-    }
-    .corner.bl,
-    .corner.br {
-      bottom: 14px;
-    }
-  }
-  @media (max-width: 767px) {
-    /* Tall screens: end the shop photo above the modes so the drone stays visible. */
-    [data-feed='boutique'] {
-      bottom: 24%;
-      mask-image: linear-gradient(#000 78%, transparent);
-    }
-  }
-  @media (max-width: 1023px) and (max-height: 760px) {
-    .mode-text {
-      display: none;
-    }
-  }
-  @media (max-width: 480px) {
-    .gauge {
-      display: none;
-    }
-    .hud-top {
-      inset-inline: calc(clamp(16px, 3vw, 40px) + 36px);
-    }
-    .mode-label {
-      font-size: 1.35rem;
-      font-stretch: 108%;
-    }
-    .mode-text {
-      font-size: 13px;
     }
   }
 
-  /* ---------- Boot-up sequence, once on load ---------- */
+  /* ---------- Small screens: drone on top, copy and modes below ---------- */
+  @media (max-width: 860px) {
+    .hero {
+      display: flex;
+      flex-direction: column;
+      min-height: 600px;
+    }
+    .stage {
+      position: relative;
+      flex: 1 1 auto;
+      min-height: 220px;
+      background:
+        radial-gradient(ellipse 70% 55% at 50% 60%, color-mix(in oklab, var(--accent) 24%, transparent), transparent 70%),
+        #050506;
+    }
+    .copy {
+      position: relative;
+      inset: auto;
+      translate: none;
+      width: auto;
+      padding: 0 20px;
+    }
+    .title {
+      margin-top: 10px;
+      font-size: clamp(1.6rem, 6.4vw, 2.2rem);
+    }
+    .text {
+      margin-top: 10px;
+      font-size: 15px;
+    }
+    .actions {
+      margin-top: 16px;
+    }
+    .status {
+      display: none;
+    }
+    .credit {
+      position: static;
+      order: 3;
+      padding: 0 20px 20px;
+    }
+    /* Modes first, under the header (Pop's button covers the bottom right corner). */
+    .modes {
+      position: relative;
+      inset: auto;
+      order: -1;
+      width: auto;
+      translate: none;
+      margin: 76px 12px 0;
+      grid-template-columns: repeat(4, 1fr);
+    }
+    .copy {
+      padding-bottom: 28px;
+    }
+    .mode {
+      grid-template-columns: 1fr;
+      padding: 12px 6px 12px;
+      text-align: center;
+    }
+    .mode-num,
+    .mode-hint {
+      display: none;
+    }
+    .mode-label {
+      flex-direction: column;
+      gap: 6px;
+      font-size: 13px;
+      font-stretch: 105%;
+    }
+  }
+  @media (max-width: 860px) and (max-height: 760px) {
+    .text {
+      display: none;
+    }
+  }
+
+  /* ---------- Opening, once on load ---------- */
   @media (prefers-reduced-motion: no-preference) {
-    .feeds {
-      animation: signal 1300ms var(--ease-out-strong) 250ms backwards;
+    .copy-mode > * {
+      animation: rise 900ms var(--ease-out-strong) backwards;
+      animation-delay: calc(300ms + var(--i, 0) * 90ms);
     }
-    .corner {
-      animation: lock 900ms var(--ease-out-strong) backwards;
-    }
-    .hud-top,
-    .compass,
-    .gauge,
-    .coords,
-    .reticle,
-    .horizon {
-      animation: appear 700ms var(--ease-out-strong) 700ms backwards;
-    }
-    .caption,
     .mode {
       animation: rise 800ms var(--ease-out-strong) backwards;
-      animation-delay: 900ms;
+    }
+    .mode:nth-child(1) {
+      animation-delay: 700ms;
     }
     .mode:nth-child(2) {
-      animation-delay: 970ms;
+      animation-delay: 770ms;
     }
     .mode:nth-child(3) {
-      animation-delay: 1040ms;
+      animation-delay: 840ms;
     }
     .mode:nth-child(4) {
-      animation-delay: 1110ms;
-    }
-  }
-  @keyframes signal {
-    from {
-      opacity: 0;
-      filter: brightness(2.2) blur(8px);
-    }
-  }
-  @keyframes lock {
-    from {
-      opacity: 0;
-      scale: 2.2;
-    }
-  }
-  @keyframes appear {
-    from {
-      opacity: 0;
+      animation-delay: 910ms;
     }
   }
   @keyframes rise {
@@ -672,167 +460,146 @@ const tapeOffset = (heading: number) => COMPASS / 2 - ((8 + heading / 45) * TICK
       transform: translateY(24px);
     }
   }
-
   @media (prefers-reduced-motion: reduce) {
-    .feed,
-    .feed-img,
-    .mode-link {
-      transition: opacity 300ms ease;
-    }
-    .feed-img,
-    .hero[data-mode] .feed .feed-img {
-      transform: none;
+    .status-dot {
       animation: none;
     }
-    .rec-dot {
-      animation: none;
+    .drone {
+      transition: none;
     }
   }
 </style>
 
 <script>
-  // Flight modes: pointing at or focusing a mode switches the feed; while nobody has
-  // interacted, the modes cycle on their own to show the whole range. Plus the live
-  // bits of the display: timecode, flight data, and the camera drifting with the pointer.
-  type Flight = { label: string; altitude: number; speed: number; heading: number };
+  import { currentMode, onModeChange, setMode, MODES } from '../../lib/mode';
+  import type { HeroDrone, Anchor } from '../../lib/hero-drone';
 
-  const hero = document.querySelector<HTMLElement>('.hero');
-  if (hero) {
-    const flights: Record<string, Flight> = JSON.parse(hero.querySelector('[data-flight]')!.textContent!);
-    const ids = Object.keys(flights);
-    const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const fr = (n: number) => n.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-    const $ = (sel: string) => hero.querySelector<HTMLElement>(sel)!;
-    const label = $('[data-flight-label]');
-    const altitude = $('[data-altitude]');
-    const speed = $('[data-speed]');
-    const heading = $('[data-heading]');
-    const timecode = $('[data-timecode]');
+  const hero = document.querySelector<HTMLElement>('.hero')!;
+  const buttons = [...hero.querySelectorAll<HTMLButtonElement>('[data-mode-btn]')];
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let drone: HeroDrone | null = null;
 
-    // Hand-over to the page: while the page scrolls over the hero, the picture moves
-    // down at half speed (parallax), blurs and darkens, and the display fades out.
-    // Plain scroll + requestAnimationFrame, so it works in every browser.
-    if (!still) {
-      const feeds = $('.feeds');
-      const shade = $('.shade');
-      const overlays = [$('.hud'), $('.selector')];
-      let ticking = false;
-      const update = () => {
-        ticking = false;
-        const h = hero.offsetHeight;
-        const p = Math.min(1, Math.max(0, scrollY / h));
-        if (p >= 1 && feeds.dataset.done) return;
-        feeds.dataset.done = p >= 1 ? '1' : '';
-        feeds.style.transform = `translate3d(0, ${(scrollY * 0.5).toFixed(1)}px, 0) scale(${(1 + p * 0.08).toFixed(4)})`;
-        feeds.style.filter = p > 0 ? `blur(${(p * 12).toFixed(2)}px)` : '';
-        shade.style.opacity = (p * 0.75).toFixed(3);
-        overlays.forEach((el) => {
-          el.style.opacity = Math.max(0, 1 - p * 2.5).toFixed(3);
-          el.style.transform = `translate3d(0, ${(scrollY * 0.25).toFixed(1)}px, 0)`;
-        });
-      };
-      addEventListener('scroll', () => {
+  // ---- Mode selector: a radio group (arrows move and choose, like native radios).
+  const sync = () => {
+    const mode = currentMode();
+    buttons.forEach((b) => {
+      const on = b.dataset.modeBtn === mode;
+      b.setAttribute('aria-checked', String(on));
+      b.tabIndex = on ? 0 : -1;
+    });
+  };
+  sync();
+  buttons.forEach((b, i) => {
+    b.addEventListener('click', () => setMode(b.dataset.modeBtn as (typeof MODES)[number]));
+    b.addEventListener('keydown', (e) => {
+      const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+      if (!step) return;
+      e.preventDefault();
+      const next = buttons[(i + step + buttons.length) % buttons.length];
+      next.focus();
+      next.click();
+    });
+  });
+  onModeChange((mode) => {
+    sync();
+    drone?.setMode(mode);
+  });
+
+  // ---- The drone, once the page has painted.
+  const canvas = hero.querySelector<HTMLCanvasElement>('[data-drone]')!;
+  const webgl = (() => {
+    try {
+      return !!document.createElement('canvas').getContext('webgl2');
+    } catch {
+      return false;
+    }
+  })();
+  const start = async () => {
+    const { createHeroDrone } = await import('../../lib/hero-drone');
+    drone = await createHeroDrone(canvas, currentMode());
+    canvas.dataset.ready = '';
+    hero.dataset.live = '';
+
+    // Render only while the hero is on screen and the tab is visible.
+    let onScreen = true;
+    const update = () => drone!.setActive(onScreen && !document.hidden);
+    new IntersectionObserver(([e]) => {
+      onScreen = e.isIntersecting;
+      update();
+    }).observe(hero);
+    document.addEventListener('visibilitychange', update);
+    update();
+
+    if (matchMedia('(hover: hover) and (pointer: fine)').matches) {
+      hero.addEventListener('pointermove', (e) => {
+        const r = hero.getBoundingClientRect();
+        drone!.setPointer(((e.clientX - r.left) / r.width) * 2 - 1, ((e.clientY - r.top) / r.height) * 2 - 1);
+      });
+    }
+
+    // Labels follow their part of the drone, pointing outwards from its centre.
+    const callouts = [...hero.querySelectorAll<HTMLElement>('.callout')];
+    drone.onFrame(() => {
+      if (innerWidth <= 1100) return;
+      const mode = currentMode();
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      // Where each label wants to be: a short line up-right (or down-right) of its point.
+      // Labels go right of the drone (the copy is on the left), unless at the edge.
+      const placed = callouts
+        .filter((el) => el.dataset.for === mode)
+        .map((el) => {
+          const p = drone!.project(el.dataset.anchor as Anchor);
+          const right = p.x < w * 0.78;
+          return { el, p, right, dx: right ? 64 : -64, y: p.y + (p.y < h * 0.5 ? -34 : 34) };
+        })
+        .sort((a, b) => a.y - b.y);
+      // No two labels on top of each other: at least 70px apart vertically.
+      for (let i = 1; i < placed.length; i++) placed[i].y = Math.max(placed[i].y, placed[i - 1].y + 70);
+      for (const { el, p, right, dx, y } of placed) {
+        const dy = y - p.y;
+        el.style.transform = `translate(${p.x.toFixed(1)}px, ${p.y.toFixed(1)}px)`;
+        el.style.setProperty('--len', `${Math.hypot(dx, dy).toFixed(1)}px`);
+        el.style.setProperty('--angle', `${((Math.atan2(dy, dx) * 180) / Math.PI).toFixed(1)}deg`);
+        el.style.setProperty('--tx', `${dx}px`);
+        el.style.setProperty('--ty', `${dy.toFixed(1)}px`);
+        el.style.setProperty('--side', right ? '0%' : '-100%');
+      }
+    });
+  };
+  if (webgl) {
+    const go = () => start().catch(() => {});
+    if (document.readyState === 'complete') requestAnimationFrame(go);
+    else addEventListener('load', go, { once: true });
+  }
+
+  // ---- Hand-over to the page: while the page scrolls over the hero, the stage moves
+  // down at half speed, blurs and darkens, and the copy fades out.
+  if (!still) {
+    const stage = hero.querySelector<HTMLElement>('.stage')!;
+    const shade = hero.querySelector<HTMLElement>('.shade')!;
+    const overlays = hero.querySelectorAll<HTMLElement>('.copy, .modes, .status');
+    let ticking = false;
+    const update = () => {
+      ticking = false;
+      const p = Math.min(1, Math.max(0, scrollY / hero.offsetHeight));
+      if (p >= 1 && stage.dataset.done) return;
+      stage.dataset.done = p >= 1 ? '1' : '';
+      stage.style.transform = `translate3d(0, ${(scrollY * 0.5).toFixed(1)}px, 0) scale(${(1 + p * 0.08).toFixed(4)})`;
+      stage.style.filter = p > 0 ? `blur(${(p * 12).toFixed(2)}px)` : '';
+      shade.style.opacity = (p * 0.75).toFixed(3);
+      overlays.forEach((el) => (el.style.opacity = Math.max(0, 1 - p * 2.5).toFixed(3)));
+    };
+    addEventListener(
+      'scroll',
+      () => {
         if (!ticking) {
           ticking = true;
           requestAnimationFrame(update);
         }
-      }, { passive: true });
-      update();
-    }
-    const compass = $('.compass');
-    const tape = $('.tape');
-    const tick = Number(compass.dataset.tick);
-    const width = Number(compass.dataset.width);
-    const tapeOffset = (h: number) => width / 2 - ((8 + h / 45) * tick + tick / 2);
-    let drift = 0; // compass turn added by the pointer, in px
-    const placeTape = () => {
-      tape.style.transform = `translateX(${(tapeOffset(flights[current].heading) + drift).toFixed(2)}px)`;
-    };
-
-    let current = hero.dataset.mode!;
-    let wobble = 0;
-
-    const show = (id: string) => {
-      if (id === current) return;
-      current = id;
-      hero.dataset.mode = id;
-      const f = flights[id];
-      label.textContent = f.label;
-      altitude.textContent = fr(f.altitude);
-      speed.textContent = fr(f.speed);
-      heading.textContent = `${f.heading}°`;
-      placeTape();
-      if (!still) {
-        hero.classList.remove('is-switching');
-        void hero.offsetWidth; // restart the static burst
-        hero.classList.add('is-switching');
-      }
-    };
-
-    // Auto-cycle until the first interaction.
-    const CYCLE = 4200;
-    hero.style.setProperty('--cycle', `${CYCLE}ms`);
-    let timer: number | undefined;
-    const stopCycle = () => {
-      window.clearInterval(timer);
-      hero.classList.remove('is-cycling');
-    };
-    if (!still) {
-      hero.classList.add('is-cycling');
-      timer = window.setInterval(() => {
-        if (document.hidden || window.scrollY > 4) return;
-        show(ids[(ids.indexOf(current) + 1) % ids.length]);
-      }, CYCLE);
-    }
-
-    hero.querySelectorAll<HTMLElement>('[data-target]').forEach((link) => {
-      const pick = () => {
-        stopCycle();
-        show(link.dataset.target!);
-      };
-      link.addEventListener('pointerenter', pick);
-      link.addEventListener('focus', pick);
-    });
-
-    // Timecode since the page opened (25 frames per second).
-    const start = performance.now();
-    const pad = (n: number) => String(n).padStart(2, '0');
-    window.setInterval(() => {
-      const t = (performance.now() - start) / 1000;
-      timecode.textContent = `${pad(Math.floor(t / 3600))}:${pad(Math.floor(t / 60) % 60)}:${pad(Math.floor(t) % 60)}:${pad(Math.floor((t % 1) * 25))}`;
-      // Altitude never holds perfectly still in flight.
-      const f = flights[current];
-      if (f.altitude > 0 && !still) {
-        wobble += (Math.random() - 0.5) * 0.08;
-        wobble *= 0.9;
-        altitude.textContent = fr(f.altitude + wobble);
-      }
-    }, 120);
-
-    // Camera drift with the pointer, eased: the feed shifts, the horizon banks and the
-    // compass turns. Transforms are set on each element directly (no inherited variable).
-    if (!still && matchMedia('(hover: hover) and (pointer: fine)').matches) {
-      const feeds = hero.querySelectorAll<HTMLElement>('.feed');
-      const horizon = $('.horizon');
-      let tx = 0;
-      let ty = 0;
-      let x = 0;
-      let y = 0;
-      let raf = 0;
-      const tick = () => {
-        x += (tx - x) * 0.06;
-        y += (ty - y) * 0.06;
-        feeds.forEach((f) => (f.style.transform = `translate(${(x * -14).toFixed(2)}px, ${(y * -10).toFixed(2)}px)`));
-        drift = x * -60;
-        placeTape();
-        horizon.style.transform = `translateY(${(y * 14).toFixed(2)}px) rotate(${(x * 5).toFixed(2)}deg)`;
-        raf = Math.abs(tx - x) + Math.abs(ty - y) > 0.001 ? requestAnimationFrame(tick) : 0;
-      };
-      hero.addEventListener('pointermove', (e) => {
-        tx = (e.clientX / innerWidth) * 2 - 1;
-        ty = (e.clientY / innerHeight) * 2 - 1;
-        if (!raf) raf = requestAnimationFrame(tick);
-      });
-    }
+      },
+      { passive: true },
+    );
+    update();
   }
 </script>
