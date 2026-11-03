@@ -1,0 +1,121 @@
+# A client request from the admin page (admin/) becomes an issue labelled "demande-client".
+# Claude edits the files, the workflow checks the build, then opens a PR for validation.
+# Claude never touches git: branch, commit, push and PR are done by the steps below.
+name: Claude – demande client
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+
+concurrency:
+  group: demande-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  demande:
+    if: github.event.label.name == 'demande-client' && github.event.issue.state == 'open'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ISSUE: ${{ github.event.issue.number }}
+      BRANCH: claude/demande-${{ github.event.issue.number }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Outils autorisés
+        id: tools
+        run: node .github/claude-tools.mjs >> "$GITHUB_OUTPUT"
+
+      - name: Claude applique la demande
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            You are updating the Les Drones Lyonnais website at the client's request.
+            Read .claude/CLAUDE.md first, in particular "Client requests (admin page)".
+
+            Request #${{ github.event.issue.number }}: ${{ github.event.issue.title }}
+            ---
+            ${{ github.event.issue.body }}
+            ---
+
+            1. Find where the content lives (src/data/ first) and make the change, nothing more.
+               If the request links a manufacturer page (new product, specs, photos), follow
+               "Products from a manufacturer page" in .claude/CLAUDE.md.
+            2. Run `npm run build` and fix anything you broke.
+            3. Write .claude-request/resume.md, in French, for the client (not a developer):
+               first line = a short title for the change (max 70 characters), then a blank
+               line, then what changed and where to look on the site (page URLs).
+               If you could not or should not make the change, leave the files untouched
+               and explain why in resume.md, with the question to ask the client.
+            Do not run git commands: the workflow commits and opens the pull request.
+          claude_args: >-
+            --max-turns 40
+            --allowedTools "${{ steps.tools.outputs.list }}"
+
+      - name: Vérifier les modifications
+        id: diff
+        run: |
+          if [ -n "$(git status --porcelain -- . ':!.claude-request')" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Aucune modification
+        if: steps.diff.outputs.changed == 'false'
+        run: |
+          {
+            echo "Claude n'a pas modifié le site pour cette demande."
+            echo
+            cat .claude-request/resume.md 2>/dev/null || echo "Aucune explication n'a été laissée : voir les logs du workflow."
+          } > "$RUNNER_TEMP/comment.md"
+          gh issue comment "$ISSUE" --body-file "$RUNNER_TEMP/comment.md"
+          gh issue edit "$ISSUE" --add-label demande-bloquee
+
+      - name: Build
+        if: steps.diff.outputs.changed == 'true'
+        run: npm run build
+
+      - name: Ouvrir la pull request
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          SUMMARY=.claude-request/resume.md
+          TITLE="$(head -n 1 "$SUMMARY" 2>/dev/null | sed 's/^#* *//' | cut -c1-70)"
+          [ -n "$TITLE" ] || TITLE="Demande client #$ISSUE"
+          {
+            tail -n +2 "$SUMMARY" 2>/dev/null
+            echo
+            echo "Closes #$ISSUE"
+          } > "$RUNNER_TEMP/pr.md"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          git add -A -- . ':!.claude-request'
+          git commit -m "$TITLE (#$ISSUE)"
+          git push --force -u origin "$BRANCH"
+
+          gh pr create --base "${{ github.event.repository.default_branch }}" --head "$BRANCH" \
+            --title "$TITLE" --body-file "$RUNNER_TEMP/pr.md" --label demande-client
+          gh issue edit "$ISSUE" --remove-label demande-bloquee || true
+
+      - name: Signaler l'échec
+        if: failure()
+        run: |
+          gh issue comment "$ISSUE" --body "La demande n'a pas abouti (erreur pendant le traitement). Détails : $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          gh issue edit "$ISSUE" --add-label demande-bloquee

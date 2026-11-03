@@ -1,0 +1,20 @@
+{
+  "//": "Manufacturer sites Claude may read (WebFetch) and download product photos from (scripts/product-images.mjs), for client requests. A domain also covers its subdomains. cdn = image hosts only.",
+  "sites": [
+    "dji.com",
+    "insta360.com",
+    "gopro.com",
+    "sony.fr",
+    "sony.com",
+    "smallrig.com",
+    "rode.com",
+    "hollyland.com",
+    "godox.com",
+    "nanlite.com",
+    "tilta.com",
+    "pgytech.com",
+    "sandisk.com",
+    "sigma-global.com"
+  ],
+  "cdn": ["djiits.com", "djicdn.com", "cdn.shopify.com"]
+}

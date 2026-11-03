@@ -10,3 +10,5 @@ npm run check    # vérification TypeScript / Astro
 ```
 
 Contexte, décisions et méthode de travail : `.claude/CLAUDE.md`.
+
+Espace admin (demandes de modification traitées par Claude, PR pour validation) : `admin/README.md`.

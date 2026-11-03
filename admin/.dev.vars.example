@@ -1,0 +1,4 @@
+# Copy to .dev.vars for `npm run dev` (gitignored).
+DEV_NO_AUTH=true
+GITHUB_TOKEN=github_pat_...
+ACCESS_AUD=unused-in-dev

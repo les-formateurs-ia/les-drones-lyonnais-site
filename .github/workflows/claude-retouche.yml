@@ -1,0 +1,44 @@
+# Follow-up on an open client request PR: a "@claude …" comment (posted by the admin page,
+# or by us on GitHub) makes Claude update the PR branch. Only users with write access
+# trigger it (checked by the action).
+name: Claude – retouche
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+
+jobs:
+  retouche:
+    if: >-
+      contains(github.event.comment.body, '@claude') &&
+      (github.event.issue.pull_request || github.event.pull_request)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Outils autorisés
+        id: tools
+        run: node .github/claude-tools.mjs >> "$GITHUB_OUTPUT"
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: >-
+            --max-turns 40
+            --allowedTools "${{ steps.tools.outputs.list }}"

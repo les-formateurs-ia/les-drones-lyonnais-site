@@ -100,6 +100,62 @@ public/            fonts, favicon, robots.txt
   `animation` shorthand, which browsers reject.
 - Everything has a still version under `prefers-reduced-motion: reduce`.
 
+## Client requests (admin page)
+
+The client asks for changes from the admin Worker (admin/, README there). Each request is
+a GitHub issue labelled `demande-client`; .github/workflows/claude-demande-client.yml runs
+Claude on it, then the workflow (not Claude) commits to `claude/demande-<n>` and opens a
+PR; we validate and merge. "@claude …" comments on that PR (claude-retouche.yml) are the
+client's follow-ups. When working on such a request:
+
+- The requester is the client, not a developer: they describe a result ("the A2 course
+  is now 290 €"), not files. Do exactly what is asked, nothing around it.
+- In scope: copy, prices, contact details, FAQ, products, services, formations, team,
+  order of items, small layout or wording tweaks. Content lives in src/data/ first
+  (site.ts, catalog.json, product-pages.json, services.ts, formations.ts,
+  service-pages/<slug>.ts); change the data, not the components, when possible.
+- Out of scope, do not change, explain in the summary instead: scripts/, admin/,
+  .github/, package files, astro.config.mjs, payments/cart logic, URLs and redirects
+  (SEO), the 3D drone, legal credits (Sketchfab, IGN). Also anything needing a file
+  the client did not provide (a photo of their own, a PDF); product photos from a
+  manufacturer page are the exception below.
+- Never invent facts (prices, certifications, figures, testimonials). If the request is
+  ambiguous or a needed fact is missing, change nothing and ask the question.
+
+### Products from a manufacturer page
+
+When the client links a manufacturer page (scripts/product-sources.json lists the sites
+you can read; a link elsewhere → ask for an official page instead):
+
+1. **Look for the product first** in src/data/catalog.json (name, model, slug; rental
+   slugs often start with `location-`). If it exists, update it, do not duplicate it.
+   Sale and rental are separate entries (`kind`), each with its own slug.
+2. **Facts come from the linked page only**: specs, weight, flight time, class
+   (C0/C1/C2), what is in the box. Prefer the `/specs` page (on dji.com: `<page>/specs`),
+   which reads well. List the source URL at the end of the summary.
+3. **Prices come from the client only.** catalog.json holds `priceHT` and `priceTTC`
+   (= HT × 1.2, 2 decimals); rentals are per day (degressive rates are computed by
+   RENTAL_TIERS). If the client does not say HT or TTC, or per day, ask.
+4. **Copy an existing entry of the same kind** for the shape: slug, `categories` (e.g.
+   rentals: `drones`, `location`, the class `c0`/`c1`/`c2` when known), `summary`,
+   `description`, and the product-pages.json sections when similar products have them
+   (`know`, `pop`…). Write the copy yourself in French, in the tone of the site; do not
+   paste the manufacturer's marketing text.
+5. **Photos**: `node scripts/product-images.mjs find <page-url>` lists the page's large
+   images and writes previews to .claude-request/candidates/ — look at them (Read) and
+   pick 1 to 4 packshots on a white background (the product alone first, then e.g.
+   folded / with controller). Then `node scripts/product-images.mjs save <slug> <url>…`
+   writes src/assets/products/<slug>-<n>.webp and prints the `images` array. The store
+   page (store.dji.com/fr/product/<name>) usually has the best packshots. Every product
+   has at least one photo: none suitable → create nothing and ask the client for
+   another official page (e.g. the store page).
+6. The page /produit/<slug>/, the shop or rental listing and the search are generated
+   from the data: nothing else to wire. `npm run build` must pass.
+- Prices in catalog.json are HT (TTC = ×1.2); keep the format of the surrounding data.
+- French copy, in the tone of the existing pages. `npm run build` must pass.
+- The summary for the client (.claude-request/resume.md) is plain French, no jargon,
+  no file paths: what changed and on which page.
+
 ## Working method
 
 Inspect before changing. Small focused components. Reuse `data/site.ts`.

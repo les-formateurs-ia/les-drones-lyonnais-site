@@ -30,3 +30,6 @@ pnpm-debug.log*
 
 # Raw clips for npm run videos (only the encoded files in public/team are kept)
 media-src/
+
+# Claude request summary, written by the GitHub Action (never committed)
+.claude-request/

@@ -1,0 +1,25 @@
+// Admin Worker (see README.md). Separate from the static site: it can be routed at
+// www.lesdroneslyonnais.com/admin/* once the new site is live, or on its own subdomain.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ldl-admin",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "observability": { "enabled": true },
+
+  // Only reachable through Cloudflare Access: no workers.dev URL.
+  "workers_dev": false,
+  "routes": [
+    { "pattern": "admin.lesdroneslyonnais.com", "custom_domain": true }
+    // Later, on the site itself: { "pattern": "www.lesdroneslyonnais.com/admin*", "zone_name": "lesdroneslyonnais.com" }
+  ],
+
+  "vars": {
+    "GITHUB_REPO": "les-formateurs-ia/les-drones-lyonnais-site",
+    // Cloudflare Zero Trust → Settings → Custom pages: "https://<team>.cloudflareaccess.com"
+    "ACCESS_TEAM_DOMAIN": "https://CHANGER.cloudflareaccess.com",
+    // Optional: preview of a PR branch, {branch} = Cloudflare's branch alias (claude-demande-12)
+    "PREVIEW_URL_TEMPLATE": ""
+  }
+  // Secrets (wrangler secret put): GITHUB_TOKEN, ACCESS_AUD
+}
