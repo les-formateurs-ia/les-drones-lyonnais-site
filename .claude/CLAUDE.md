@@ -54,7 +54,13 @@ public/            fonts, favicon, robots.txt
 
 ## Homepage motion (client request: a "wow" effect)
 
-- First screen (client request, 2026-10-27): a realistic 3D drone in the middle of the
+- First screen (client request, 2026-11-04): back to the WordPress layout, a full-screen
+  triptych with background photos (Hero.astro: Prestations, Boutique / Location,
+  Formations; photos src/assets/images/prestations|boutique-location|formations.jpg).
+  Black and white, the hovered panel widens and takes its colours back. No mode
+  switcher any more: the mode-aware sections below show the default mode (or ?mode=).
+  The 3D drone below (lib/hero-drone.ts, lib/mode.ts) is kept in the repo, unplugged.
+- Previous first screen (client request, 2026-10-27): a realistic 3D drone in the middle of the
   page (Three.js, lib/hero-drone.ts) and four **modes** — Prestations, Boutique,
   Location, Formations. Each mode has its own set and flight (scan beam / showroom
   pedestal / landing pad / figure of eight through gates), labels pinned to the drone,
